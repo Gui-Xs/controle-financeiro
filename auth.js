@@ -16,6 +16,9 @@ const auth = firebase.auth();
 
 // Configurar provedor do Google
 const provider = new firebase.auth.GoogleAuthProvider();
+provider.setCustomParameters({
+    prompt: 'select_account'
+});
 
 // Adicionar listener para mudanças de autenticação
 auth.onAuthStateChanged(user => {
@@ -34,15 +37,18 @@ auth.onAuthStateChanged(user => {
 async function login() {
     try {
         const result = await auth.signInWithPopup(provider);
+        console.log('Resultado do login:', result);
         if (result.user.uid === 'GB0bUGXjtgUvNQoXrCsiOW6HXYJ2') {
             document.getElementById('appContent').style.display = 'block';
             document.getElementById('loginBtn').style.display = 'none';
             document.getElementById('logoutBtn').style.display = 'block';
+        } else {
+            throw new Error('Usuário não autorizado');
         }
         return result.user;
     } catch (error) {
         console.error('Erro ao fazer login:', error);
-        alert('Erro ao fazer login. Por favor, tente novamente.');
+        alert(error.message || 'Erro ao fazer login. Por favor, tente novamente.');
         throw error;
     }
 }
@@ -53,6 +59,8 @@ function logout() {
         document.getElementById('appContent').style.display = 'none';
         document.getElementById('loginBtn').style.display = 'block';
         document.getElementById('logoutBtn').style.display = 'none';
+    }).catch(error => {
+        console.error('Erro ao fazer logout:', error);
     });
 }
 
