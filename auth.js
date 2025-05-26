@@ -46,9 +46,11 @@ function updateUI(user) {
 async function login() {
     console.log('Iniciando login...');
     try {
-        console.log('Iniciando signInWithPopup...');
-        const result = await auth.signInWithPopup(provider);
-        console.log('Resultado do login:', result);
+        console.log('Iniciando signInWithRedirect...');
+        await auth.signInWithRedirect(provider);
+        
+        // Verificar o resultado do redirecionamento
+        const result = await auth.getRedirectResult();
         
         if (!result) {
             throw new Error('Resultado do login é nulo');
