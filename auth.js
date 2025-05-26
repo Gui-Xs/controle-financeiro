@@ -1,9 +1,9 @@
-// Configuração do Firebase
+// Your web app's Firebase configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyA4iBJU8fzFXX0ShQX_Wg6n4TK4vwM2Mh0",
-    authDomain: "controle-financeiro-9d7c4.firebaseapp.com",
-    projectId: "controle-financeiro-9d7c4",
-    storageBucket: "controle-financeiro-9d7c4.firebasestorage.app",
+    apiKey: "AIzaSyDVNqFG5frUKXcy4zB-f5zYZNpWvABxCgE",
+    authDomain: "controle-financeiro-8f7e4.firebaseapp.com",
+    projectId: "controle-financeiro-8f7e4",
+    storageBucket: "controle-financeiro-8f7e4.appspot.com",
     messagingSenderId: "698161065367",
     appId: "1:698161065367:web:8ddea9ba6dcb1b723c68d2"
 };
@@ -14,28 +14,52 @@ firebase.initializeApp(firebaseConfig);
 // Configurar autenticação
 const auth = firebase.auth();
 
+<<<<<<< HEAD
 // Configurar provedor do Google
 const provider = new firebase.auth.GoogleAuthProvider();
 provider.setCustomParameters({
     prompt: 'select_account'
+=======
+// Verificar resultado do redirecionamento
+auth.getRedirectResult().then((result) => {
+    if (result && result.user) {
+        console.log('Login redirecionado bem sucedido, verificando UID...');
+        if (result.user.uid !== 'GB0bUGXjtgUvNQoXrCsiOW6HXYJ2') {
+            console.log('UID não autorizado');
+            auth.signOut();
+            alert('Acesso não autorizado. Apenas o proprietário pode acessar este aplicativo.');
+        }
+    }
+}).catch((error) => {
+    console.error('Erro no redirecionamento:', error);
+>>>>>>> a13d6d7d2cecb9adee39752ae12c01cd3e2a058e
 });
 
-// Adicionar listener para mudanças de autenticação
-auth.onAuthStateChanged(user => {
+// Função para atualizar a interface com base no estado de autenticação
+function updateUI(user) {
     if (user && user.uid === 'GB0bUGXjtgUvNQoXrCsiOW6HXYJ2') {
+        console.log('Usuário autorizado:', user.uid);
         document.getElementById('appContent').style.display = 'block';
         document.getElementById('loginBtn').style.display = 'none';
         document.getElementById('logoutBtn').style.display = 'block';
     } else {
+        console.log('Usuário não autorizado ou não logado');
         document.getElementById('appContent').style.display = 'none';
         document.getElementById('loginBtn').style.display = 'block';
         document.getElementById('logoutBtn').style.display = 'none';
     }
+}
+
+// Adicionar listener para mudanças de autenticação
+auth.onAuthStateChanged((user) => {
+    console.log('Estado de autenticação mudou:', user ? user.uid : 'nenhum usuário');
+    updateUI(user);
 });
 
 // Função para fazer login
 async function login() {
     try {
+<<<<<<< HEAD
         const result = await auth.signInWithPopup(provider);
         console.log('Resultado do login:', result);
         if (result.user.uid === 'GB0bUGXjtgUvNQoXrCsiOW6HXYJ2') {
@@ -50,10 +74,24 @@ async function login() {
         console.error('Erro ao fazer login:', error);
         alert(error.message || 'Erro ao fazer login. Por favor, tente novamente.');
         throw error;
+=======
+        console.log('Iniciando processo de login...');
+        const provider = new firebase.auth.GoogleAuthProvider();
+        provider.setCustomParameters({
+            prompt: 'select_account'
+        });
+        
+        // Usar redirecionamento em vez de popup
+        await auth.signInWithRedirect(provider);
+    } catch (error) {
+        console.error('Erro ao fazer login:', error);
+        alert('Erro ao fazer login. Por favor, tente novamente.');
+>>>>>>> a13d6d7d2cecb9adee39752ae12c01cd3e2a058e
     }
 }
 
 // Função para fazer logout
+<<<<<<< HEAD
 function logout() {
     auth.signOut().then(() => {
         document.getElementById('appContent').style.display = 'none';
@@ -62,6 +100,17 @@ function logout() {
     }).catch(error => {
         console.error('Erro ao fazer logout:', error);
     });
+=======
+async function logout() {
+    try {
+        await auth.signOut();
+        console.log('Logout realizado com sucesso');
+        updateUI(null);
+    } catch (error) {
+        console.error('Erro ao fazer logout:', error);
+        alert('Erro ao fazer logout. Por favor, tente novamente.');
+    }
+>>>>>>> a13d6d7d2cecb9adee39752ae12c01cd3e2a058e
 }
 
 // Adicionar eventos aos botões quando a página carregar
