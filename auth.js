@@ -14,6 +14,59 @@ firebase.initializeApp(firebaseConfig);
 // Configurar autenticação
 const auth = firebase.auth();
 
+// Configurar provedor do Google
+const provider = new firebase.auth.GoogleAuthProvider();
+
+// Adicionar listener para mudanças de autenticação
+auth.onAuthStateChanged(user => {
+    if (user && user.uid === 'GB0bUGXjtgUvNQoXrCsiOW6HXYJ2') {
+        document.getElementById('appContent').style.display = 'block';
+        document.getElementById('loginBtn').style.display = 'none';
+        document.getElementById('logoutBtn').style.display = 'block';
+    } else {
+        document.getElementById('appContent').style.display = 'none';
+        document.getElementById('loginBtn').style.display = 'block';
+        document.getElementById('logoutBtn').style.display = 'none';
+    }
+});
+
+// Função para fazer login
+async function login() {
+    try {
+        const result = await auth.signInWithPopup(provider);
+        if (result.user.uid === 'GB0bUGXjtgUvNQoXrCsiOW6HXYJ2') {
+            document.getElementById('appContent').style.display = 'block';
+            document.getElementById('loginBtn').style.display = 'none';
+            document.getElementById('logoutBtn').style.display = 'block';
+        }
+        return result.user;
+    } catch (error) {
+        console.error('Erro ao fazer login:', error);
+        alert('Erro ao fazer login. Por favor, tente novamente.');
+        throw error;
+    }
+}
+
+// Função para fazer logout
+function logout() {
+    auth.signOut().then(() => {
+        document.getElementById('appContent').style.display = 'none';
+        document.getElementById('loginBtn').style.display = 'block';
+        document.getElementById('logoutBtn').style.display = 'none';
+    });
+}
+
+// Adicionar eventos aos botões quando a página carregar
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('loginBtn').addEventListener('click', login);
+    document.getElementById('logoutBtn').addEventListener('click', logout);
+});
+
+// Exportar funções
+window.auth = auth;
+window.login = login;
+window.logout = logout;
+
 // Função para verificar se o usuário está logado
 function checkAuth() {
     return new Promise((resolve) => {
