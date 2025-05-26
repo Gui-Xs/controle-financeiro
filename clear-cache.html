@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Limpando Cache</title>
+    <script>
+        // Limpa o cache do navegador
+        if ('caches' in window) {
+            caches.keys().then(keys => {
+                Promise.all(
+                    keys.map(key => caches.delete(key))
+                ).then(() => {
+                    console.log('Cache limpo com sucesso');
+                    // Recarrega a página principal
+                    window.location.href = 'index.html';
+                });
+            });
+        } else {
+            console.log('API de Cache não suportada');
+            window.location.href = 'index.html';
+        }
+    </script>
+</head>
+<body>
+    <p>Limpando cache e redirecionando...</p>
+</body>
+</html>
