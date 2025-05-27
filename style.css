@@ -18,8 +18,53 @@
     padding: 8px 16px;
     border-radius: 4px;
     cursor: pointer;
-    margin-left: 16px;
     transition: background-color 0.2s;
+}
+
+/* Estilos para a seção de totais */
+.totals-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-top: 24px;
+}
+
+.total-card {
+    background-color: var(--secondary-color);
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: var(--card-shadow);
+    text-align: center;
+    transition: transform 0.2s;
+}
+
+.total-card:hover {
+    transform: translateY(-2px);
+}
+
+.total-card h3 {
+    color: var(--text-color);
+    margin-bottom: 8px;
+    font-size: 1.1rem;
+}
+
+.total-card p {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-color);
+    margin: 0;
+}
+
+.total-card.receitas {
+    background-color: rgba(16, 185, 129, 0.1);
+}
+
+.total-card.despesas {
+    background-color: rgba(239, 68, 68, 0.1);
+}
+
+.total-card.saldo {
+    background-color: rgba(124, 58, 237, 0.1);
 }
 
 .test-button:hover {

@@ -156,23 +156,41 @@ async function updateBalance() {
         }
 
         const transactions = await db.transactions.toArray();
-        let total = 0;
-        let totalReceitas = 0;
-        let totalDespesas = 0;
+        const totals = {
+            receitas: 0,
+            despesas: 0,
+            total: 0
+        };
         
         transactions.forEach(transaction => {
+            const amount = transaction.amount || 0;
+            
             if (transaction.type === 'receita') {
-                totalReceitas += transaction.amount;
-                total += transaction.amount;
+                totals.receitas += amount;
+                totals.total += amount;
             } else {
-                totalDespesas += transaction.amount;
-                total -= transaction.amount;
+                totals.despesas += amount;
+                totals.total -= amount;
             }
         });
         
-        document.getElementById('totalReceitas')?.textContent = formatCurrency(totalReceitas);
-        document.getElementById('totalDespesas')?.textContent = formatCurrency(totalDespesas);
-        document.getElementById('saldoTotal')?.textContent = formatCurrency(total);
+        const totalsElement = document.getElementById('totals');
+        if (totalsElement) {
+            totalsElement.innerHTML = `
+                <div class="total-card">
+                    <h3>Receitas</h3>
+                    <p>${formatCurrency(totals.receitas)}</p>
+                </div>
+                <div class="total-card">
+                    <h3>Despesas</h3>
+                    <p>${formatCurrency(totals.despesas)}</p>
+                </div>
+                <div class="total-card">
+                    <h3>Saldo</h3>
+                    <p>${formatCurrency(totals.total)}</p>
+                </div>
+            `;
+        }
     } catch (error) {
         console.error('Erro ao atualizar saldo:', error);
     }
