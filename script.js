@@ -114,12 +114,9 @@ async function updateTransactionsTable() {
             item.innerHTML = `
                 <div class="transaction-details">
                     <div class="transaction-icon" data-category="${transaction.category}"></div>
-                    <div class="transaction-info">
-                        <span class="transaction-description">
-                            ${transaction.description}
-                        </span>
-                        <span class="transaction-date">${formatDate(date)}</span>
-                    </div>
+                    <span class="transaction-category">${transaction.category}</span>
+                    <span class="transaction-description">${transaction.description}</span>
+                    <span class="transaction-date">${formatDate(date)}</span>
                     <div class="transaction-amount ${transaction.type}">
                         ${formatCurrency(transaction.amount)}
                     </div>
