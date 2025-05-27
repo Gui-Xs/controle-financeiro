@@ -29,16 +29,30 @@ console.log('Provedor do Google configurado');
 // Função para atualizar a interface
 function updateUI(user) {
     console.log('Atualizando UI...', user ? user.uid : 'nenhum usuário');
+    
+    const loginScreen = document.getElementById('loginScreen');
+    const mainContent = document.getElementById('mainContent');
+    const loginBtn = document.getElementById('loginBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    
+    // Verificar se os elementos existem antes de manipulá-los
+    if (!loginScreen || !mainContent || !loginBtn || !logoutBtn) {
+        console.error('Elementos não encontrados no DOM');
+        return;
+    }
+    
     if (user && user.uid === 'GB0bUGXjtgUvNQoXrCsiOW6HXYJ2') {
         console.log('Usuário autorizado:', user.uid);
-        document.getElementById('appContent').style.display = 'block';
-        document.getElementById('loginBtn').style.display = 'none';
-        document.getElementById('logoutBtn').style.display = 'block';
+        loginScreen.style.display = 'none';
+        mainContent.style.display = 'block';
+        loginBtn.style.display = 'none';
+        logoutBtn.style.display = 'block';
     } else {
         console.log('Usuário não autorizado ou não logado');
-        document.getElementById('appContent').style.display = 'none';
-        document.getElementById('loginBtn').style.display = 'block';
-        document.getElementById('logoutBtn').style.display = 'none';
+        loginScreen.style.display = 'block';
+        mainContent.style.display = 'none';
+        loginBtn.style.display = 'block';
+        logoutBtn.style.display = 'none';
     }
 }
 

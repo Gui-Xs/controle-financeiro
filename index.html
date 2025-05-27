@@ -17,22 +17,36 @@
     <script src="./script.js" defer></script>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1><i class="fas fa-wallet"></i> Controle Financeiro</h1>
-            <div class="theme-switch">
-                <span>Modo Claro</span>
-                <label class="switch">
-                    <input type="checkbox" id="themeToggle">
-                    <span class="slider"></span>
-                </label>
-            </div>
-            <div id="userStatus">
-                <button id="loginBtn" class="test-button">Entrar com Google</button>
-                <button id="logoutBtn" class="test-button" style="display: none;">Sair</button>
-            </div>
-        </header>
-        <div id="appContent" style="display: none;">
+    <div id="appContainer">
+        <div id="loginScreen" style="display: block;">
+            <header>
+                <h1><i class="fas fa-wallet"></i> Controle Financeiro</h1>
+                <div class="theme-switch">
+                    <span>Modo Claro</span>
+                    <label class="switch">
+                        <input type="checkbox" id="themeToggle">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div id="userStatus">
+                    <button id="loginBtn" class="test-button">Entrar com Google</button>
+                </div>
+            </header>
+        </div>
+        <div id="mainContent" style="display: none;">
+            <header>
+                <h1><i class="fas fa-wallet"></i> Controle Financeiro</h1>
+                <div class="theme-switch">
+                    <span>Modo Claro</span>
+                    <label class="switch">
+                        <input type="checkbox" id="themeToggle">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div id="userStatus">
+                    <button id="logoutBtn" class="test-button" style="display: none;">Sair</button>
+                </div>
+            </header>
             <main>
                 <section class="add-transaction">
                     <h2><i class="fas fa-plus-circle"></i> Adicionar Transação</h2>
@@ -261,12 +275,7 @@
                     </select>
                 </div>
                 <div class="transactions-container">
-                    <ul id="transactionsList" class="transactions-list"></ul>
-                </div>
-                <p class="no-transactions">Nenhuma transação registrada.</p>
-            </section>
-        </main>
     </div>
-    <script src="script.js"></script>
 </body>
+<script src="script.js"></script>
 </html>
