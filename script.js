@@ -1,5 +1,5 @@
 // Inicializar Dexie
-let db;
+const db = new Dexie('controleFinanceiro');
 
 // Funções auxiliares
 function formatCurrency(value) {
@@ -16,13 +16,17 @@ function formatDate(date) {
 // Função para inicializar o banco de dados
 async function initializeDatabase() {
     try {
-        db = new Dexie('controleFinanceiro');
-        db.version(1).stores({
+        // Definir a versão mais recente do banco
+        db.version(2).stores({
             transactions: '++id, date, description, amount, type, category, paymentMethod, installments, isRecurring, frequency, endDate'
         });
+        
+        // Garantir que o banco seja inicializado
+        await db.open();
         console.log('Banco de dados inicializado com sucesso');
     } catch (error) {
         console.error('Erro ao inicializar banco de dados:', error);
+        throw error;
     }
 }
 
