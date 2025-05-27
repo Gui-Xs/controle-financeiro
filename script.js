@@ -103,7 +103,6 @@ async function updateTransactionsTable() {
         transactionsList.innerHTML = '';
         
         if (transactions.length === 0) {
-            transactionsList.innerHTML = '<p class="no-transactions">Nenhuma transação registrada.</p>';
             return;
         }
 
