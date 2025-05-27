@@ -530,6 +530,68 @@ main {
     gap: 1rem;
 }
 
+.transaction-icon {
+    width: 24px;
+    height: 24px;
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    font-size: 16px;
+    color: var(--accent-color);
+    display: inline-block;
+}
+
+.transaction-icon[data-category="alimentacao"]::before {
+    content: "\f011"; /* cutlery */
+}
+
+.transaction-icon[data-category="transporte"]::before {
+    content: "\f1b9"; /* car */
+}
+
+.transaction-icon[data-category="moradia"]::before {
+    content: "\f015"; /* home */
+}
+
+.transaction-icon[data-category="saude"]::before {
+    content: "\f0f5"; /* heart */
+}
+
+.transaction-icon[data-category="educacao"]::before {
+    content: "\f19d"; /* graduation-cap */
+}
+
+.transaction-icon[data-category="lazer"]::before {
+    content: "\f002"; /* smile */
+}
+
+.transaction-icon[data-category="vestuario"]::before {
+    content: "\f019"; /* tshirt */
+}
+
+.transaction-icon[data-category="tecnologia"]::before {
+    content: "\f0ac"; /* laptop */
+}
+
+.transaction-icon[data-category="servicos"]::before {
+    content: "\f1ec"; /* tools */
+}
+
+.transaction-icon[data-category="investimentos"]::before {
+    content: "\f19a"; /* chart-line */
+}
+
+.transaction-icon[data-category="viagem"]::before {
+    content: "\f0b1"; /* plane */
+}
+
+.transaction-icon[data-category="presente"]::before {
+    content: "\f06b"; /* gift */
+}
+
+.transaction-icon[data-category="outros"]::before {
+    content: "\f013"; /* tags */
+}
+
 .transaction-info i {
     font-size: 1.5rem;
     color: var(--accent-color);

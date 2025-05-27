@@ -113,10 +113,9 @@ async function updateTransactionsTable() {
             const date = new Date(transaction.date);
             item.innerHTML = `
                 <div class="transaction-details">
-                    <div class="transaction-icon"></div>
-                    <div class="transaction-info" data-category="${transaction.category}">
+                    <div class="transaction-icon" data-category="${transaction.category}"></div>
+                    <div class="transaction-info">
                         <span class="transaction-description">
-                            <span class="transaction-icon"></span>
                             ${transaction.description}
                         </span>
                         <span class="transaction-date">${formatDate(date)}</span>
@@ -133,6 +132,9 @@ async function updateTransactionsTable() {
             `;
             transactionsList.appendChild(item);
         });
+        
+        // Configurar o gráfico
+        await configureChart();
         
         // Atualizar o saldo
         updateBalance();
