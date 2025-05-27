@@ -1,132 +1,128 @@
-// Inicializar Firestore
-const db = firebase.firestore();
+// Inicializar Dexie
+const db = new Dexie('controleFinanceiro');
+db.version(1).stores({
+    transactions: '++id, date, description, amount, type'
+});
 
-// Referência para a coleção de transações
-const transactionsRef = db.collection('transactions');
-
-// Função para formatar moeda
+// Funções auxiliares
 function formatCurrency(value) {
-    return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+    }).format(value);
 }
 
-// Função para atualizar os totais
-function updateTotals(transactions) {
-    let totalReceitas = 0;
-    let totalDespesas = 0;
-    let totalCartao = 0;
-
-    transactions.forEach(transaction => {
-        if (transaction.type === 'receita') {
-            totalReceitas += parseFloat(transaction.amount);
-        } else {
-            totalDespesas += parseFloat(transaction.amount);
-            if (transaction.paymentMethod === 'cartao_credito') {
-                totalCartao += parseFloat(transaction.amount);
-            }
-        }
-    });
-
-    document.getElementById('totalReceitas').textContent = formatCurrency(totalReceitas);
-    document.getElementById('totalDespesas').textContent = formatCurrency(totalDespesas);
-    document.getElementById('totalCartao').textContent = formatCurrency(totalCartao);
-    document.getElementById('saldoTotal').textContent = formatCurrency(totalReceitas - totalDespesas);
-}
-
-// Função para atualizar o gráfico
-function updateChart(transactions) {
-    const chartContainer = document.querySelector('.chart-container');
-    const canvas = document.getElementById('expensesChart');
-    
-    // Limpar o conteúdo anterior
-    chartContainer.innerHTML = '<canvas id="expensesChart"></canvas>';
-    
-    // Filtrar apenas despesas
-    const expenses = transactions.filter(t => t.type === 'despesa');
-    const categories = {};
-
-    expenses.forEach(expense => {
-        if (categories[expense.category]) {
-            categories[expense.category] += parseFloat(expense.amount);
-        } else {
-            categories[expense.category] = parseFloat(expense.amount);
-        }
-    });
-
-    const data = {
-        labels: Object.keys(categories),
-        datasets: [{
-            data: Object.values(categories),
-            backgroundColor: [
-                '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEEAD',
-                '#FF6F69', '#6B5B95', '#88B04B', '#F7CAC9', '#92A8D1',
-                '#955251', '#B565A7', '#003049', '#D62828', '#F77F00'
-            ]
-        }]
-    };
-
-    const config = {
-        type: 'doughnut',
-        data: data,
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    position: 'bottom'
-                }
-            }
-        }
-    };
-
-    new Chart(canvas, config);
+function formatDate(date) {
+    return new Intl.DateTimeFormat('pt-BR').format(date);
 }
 
 // Função para adicionar transação
-document.getElementById('transactionForm').addEventListener('submit', async (e) => {
+async function addTransaction(e) {
     e.preventDefault();
     
-    const transaction = {
-        description: document.getElementById('description').value,
-        amount: document.getElementById('amount').value,
-        type: document.getElementById('type').value,
-        category: document.getElementById('category').value,
-        paymentMethod: document.getElementById('paymentMethod').value,
-        date: document.getElementById('date').value,
-        isRecurring: document.getElementById('isRecurring').checked,
-        frequency: document.getElementById('frequency').value,
-        endDate: document.getElementById('endDate').value,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    };
-
+    const description = document.getElementById('description').value;
+    const amount = parseFloat(document.getElementById('amount').value);
+    const type = document.getElementById('type').value;
+    const date = new Date();
+    
+    if (!description || isNaN(amount)) {
+        alert('Por favor, preencha todos os campos corretamente');
+        return;
+    }
+    
     try {
-        await transactionsRef.add(transaction);
-        alert('Transação adicionada com sucesso!');
-        e.target.reset();
-        // Atualizar a lista de transações
-        loadTransactions();
+        const transaction = {
+            date: date.getTime(),
+            description,
+            amount,
+            type
+        };
+        
+        await db.transactions.add(transaction);
+        
+        // Atualizar a tabela
+        updateTransactionsTable();
+        
+        // Limpar o formulário
+        document.getElementById('transactionForm').reset();
+        
     } catch (error) {
         console.error('Erro ao adicionar transação:', error);
         alert('Erro ao adicionar transação. Por favor, tente novamente.');
     }
-});
+}
 
-// Função para carregar transações
-async function loadTransactions() {
+// Função para atualizar a tabela de transações
+async function updateTransactionsTable() {
     try {
-        const snapshot = await transactionsRef.orderBy('timestamp', 'desc').get();
-        const transactions = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
-
-        // Atualizar totais
-        updateTotals(transactions);
-        // Atualizar gráfico
-        updateChart(transactions);
+        const transactions = await db.transactions.toArray();
+        const tableBody = document.getElementById('transactionsTableBody');
+        tableBody.innerHTML = '';
         
+        transactions.forEach(transaction => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${formatDate(new Date(transaction.date))}</td>
+                <td>${transaction.description}</td>
+                <td>${formatCurrency(transaction.amount)}</td>
+                <td>${transaction.type}</td>
+                <td>
+                    <button onclick="deleteTransaction(${transaction.id})" class="delete-btn">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            `;
+            tableBody.appendChild(row);
+        });
+        
+        // Atualizar o saldo
+        updateBalance();
     } catch (error) {
-        console.error('Erro ao carregar transações:', error);
+        console.error('Erro ao atualizar tabela:', error);
     }
 }
 
-// Carregar transações quando o documento estiver pronto
-document.addEventListener('DOMContentLoaded', loadTransactions);
+// Função para deletar transação
+async function deleteTransaction(id) {
+    if (confirm('Tem certeza que deseja deletar esta transação?')) {
+        try {
+            await db.transactions.delete(id);
+            updateTransactionsTable();
+        } catch (error) {
+            console.error('Erro ao deletar transação:', error);
+            alert('Erro ao deletar transação. Por favor, tente novamente.');
+        }
+    }
+}
+
+// Função para atualizar o saldo
+async function updateBalance() {
+    try {
+        const transactions = await db.transactions.toArray();
+        let total = 0;
+        
+        transactions.forEach(transaction => {
+            if (transaction.type === 'receita') {
+                total += transaction.amount;
+            } else {
+                total -= transaction.amount;
+            }
+        });
+        
+        document.getElementById('balance').textContent = formatCurrency(total);
+    } catch (error) {
+        console.error('Erro ao atualizar saldo:', error);
+    }
+}
+
+// Adicionar eventos quando a página carregar
+document.addEventListener('DOMContentLoaded', () => {
+    // Adicionar evento ao formulário de transação
+    const transactionForm = document.getElementById('transactionForm');
+    if (transactionForm) {
+        transactionForm.addEventListener('submit', addTransaction);
+    }
+    
+    // Atualizar a tabela inicialmente
+    updateTransactionsTable();
+});
