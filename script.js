@@ -180,23 +180,19 @@ async function updateBalance() {
             }
         });
         
-        const totalsElement = document.getElementById('totals');
-        if (totalsElement) {
-            totalsElement.innerHTML = `
-                <div class="total-card">
-                    <h3>Receitas</h3>
-                    <p>${formatCurrency(totals.receitas)}</p>
-                </div>
-                <div class="total-card">
-                    <h3>Despesas</h3>
-                    <p>${formatCurrency(totals.despesas)}</p>
-                </div>
-                <div class="total-card">
-                    <h3>Saldo</h3>
-                    <p>${formatCurrency(totals.total)}</p>
-                </div>
-            `;
-        }
+        // Atualizar os totais nos elementos específicos
+        document.getElementById('totalReceitas').textContent = formatCurrency(totals.receitas);
+        document.getElementById('totalDespesas').textContent = formatCurrency(totals.despesas);
+        document.getElementById('saldoTotal').textContent = formatCurrency(totals.total);
+        
+        // Calcular total do cartão
+        const cartaoTotal = transactions.reduce((sum, transaction) => {
+            if (transaction.paymentMethod === 'cartao_credito') {
+                return sum + (transaction.type === 'despesa' ? transaction.amount : -transaction.amount);
+            }
+            return sum;
+        }, 0);
+        document.getElementById('totalCartao').textContent = formatCurrency(cartaoTotal);
     } catch (error) {
         console.error('Erro ao atualizar saldo:', error);
     }
