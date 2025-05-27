@@ -113,9 +113,13 @@ async function updateTransactionsTable() {
             const date = new Date(transaction.date);
             item.innerHTML = `
                 <div class="transaction-details">
-                    <div class="transaction-info">
+                    <div class="transaction-icon"></div>
+                    <div class="transaction-info" data-category="${transaction.category}">
+                        <span class="transaction-description">
+                            <span class="transaction-icon"></span>
+                            ${transaction.description}
+                        </span>
                         <span class="transaction-date">${formatDate(date)}</span>
-                        <span class="transaction-description">${transaction.description}</span>
                     </div>
                     <div class="transaction-amount ${transaction.type}">
                         ${formatCurrency(transaction.amount)}
@@ -154,7 +158,69 @@ async function deleteTransaction(id) {
     }
 }
 
-// Função para atualizar o saldo
+// Função para configurar o gráfico
+async function configureChart() {
+    try {
+        const transactions = await db.transactions.toArray();
+        const categories = {};
+        
+        transactions.forEach(transaction => {
+            if (transaction.type === 'despesa') {
+                const category = transaction.category || 'outros';
+                categories[category] = (categories[category] || 0) + transaction.amount;
+            }
+        });
+
+        const ctx = document.getElementById('expensesChart').getContext('2d');
+        
+        if (window.myChart) {
+            window.myChart.destroy();
+        }
+
+        window.myChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: Object.keys(categories),
+                datasets: [{
+                    data: Object.values(categories),
+                    backgroundColor: [
+                        '#10b981',
+                        '#ef4444',
+                        '#f59e0b',
+                        '#7c3aed',
+                        '#2dd4bf',
+                        '#f472b6',
+                        '#3b82f6',
+                        '#16a34a',
+                        '#db2777',
+                        '#1e40af',
+                        '#8b5cf6'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: 'white'
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: 'Distribuição de Gastos por Categoria',
+                        color: 'white'
+                    }
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Erro ao configurar gráfico:', error);
+    }
+}
+
+// Função para atualizar o saldo e o gráfico
 async function updateBalance() {
     try {
         if (!db) {
