@@ -24,7 +24,18 @@ const provider = new firebase.auth.GoogleAuthProvider();
 provider.setCustomParameters({
     prompt: 'select_account'
 });
-console.log('Provedor do Google configurado');
+
+// Configurar opções de CORS
+provider.setCustomParameters({
+    'client_id': '698161065367-8g6933849408879468685g6933849408879468685.apps.googleusercontent.com',
+    'cookie_policy': 'single_host_origin',
+    'redirect_uri': window.location.origin
+});
+
+// Configurar opções de autenticação
+firebase.auth().setPersistence(firebase.auth.Auth.Persistence.SESSION);
+
+console.log('Provedor do Google configurado com CORS');
 
 // Função para atualizar a interface
 function updateUI(user) {
