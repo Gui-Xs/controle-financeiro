@@ -1,8 +1,5 @@
 // Inicializar Dexie
-const db = new Dexie('controleFinanceiro');
-db.version(1).stores({
-    transactions: '++id, date, description, amount, type'
-});
+let db;
 
 // Funções auxiliares
 function formatCurrency(value) {
@@ -16,14 +13,33 @@ function formatDate(date) {
     return new Intl.DateTimeFormat('pt-BR').format(date);
 }
 
+// Função para inicializar o banco de dados
+async function initializeDatabase() {
+    try {
+        db = new Dexie('controleFinanceiro');
+        db.version(1).stores({
+            transactions: '++id, date, description, amount, type, category, paymentMethod, installments, isRecurring, frequency, endDate'
+        });
+        console.log('Banco de dados inicializado com sucesso');
+    } catch (error) {
+        console.error('Erro ao inicializar banco de dados:', error);
+    }
+}
+
 // Função para adicionar transação
 async function addTransaction(e) {
     e.preventDefault();
     
-    const description = document.getElementById('description').value;
-    const amount = parseFloat(document.getElementById('amount').value);
-    const type = document.getElementById('type').value;
-    const date = new Date();
+    const description = document.getElementById('description')?.value;
+    const amount = parseFloat(document.getElementById('amount')?.value);
+    const type = document.getElementById('type')?.value;
+    const category = document.getElementById('category')?.value;
+    const paymentMethod = document.getElementById('paymentMethod')?.value;
+    const installments = parseInt(document.getElementById('installments')?.value) || 1;
+    const isRecurring = document.getElementById('isRecurring')?.checked || false;
+    const frequency = document.getElementById('frequency')?.value;
+    const endDate = document.getElementById('endDate')?.value;
+    const date = new Date(document.getElementById('date')?.value || new Date());
     
     if (!description || isNaN(amount)) {
         alert('Por favor, preencha todos os campos corretamente');
@@ -31,11 +47,21 @@ async function addTransaction(e) {
     }
     
     try {
+        if (!db) {
+            await initializeDatabase();
+        }
+
         const transaction = {
             date: date.getTime(),
             description,
             amount,
-            type
+            type,
+            category,
+            paymentMethod,
+            installments,
+            isRecurring,
+            frequency,
+            endDate
         };
         
         await db.transactions.add(transaction);
@@ -44,7 +70,7 @@ async function addTransaction(e) {
         updateTransactionsTable();
         
         // Limpar o formulário
-        document.getElementById('transactionForm').reset();
+        document.getElementById('transactionForm')?.reset();
         
     } catch (error) {
         console.error('Erro ao adicionar transação:', error);
@@ -55,24 +81,47 @@ async function addTransaction(e) {
 // Função para atualizar a tabela de transações
 async function updateTransactionsTable() {
     try {
+        if (!db) {
+            await initializeDatabase();
+        }
+
         const transactions = await db.transactions.toArray();
-        const tableBody = document.getElementById('transactionsTableBody');
-        tableBody.innerHTML = '';
+        const transactionsList = document.getElementById('transactionsList');
         
+        if (!transactionsList) {
+            console.error('Elemento transactionsList não encontrado');
+            return;
+        }
+
+        transactionsList.innerHTML = '';
+        
+        if (transactions.length === 0) {
+            transactionsList.innerHTML = '<p class="no-transactions">Nenhuma transação registrada.</p>';
+            return;
+        }
+
         transactions.forEach(transaction => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${formatDate(new Date(transaction.date))}</td>
-                <td>${transaction.description}</td>
-                <td>${formatCurrency(transaction.amount)}</td>
-                <td>${transaction.type}</td>
-                <td>
+            const item = document.createElement('li');
+            item.className = 'transaction-item';
+            
+            const date = new Date(transaction.date);
+            item.innerHTML = `
+                <div class="transaction-details">
+                    <div class="transaction-info">
+                        <span class="transaction-date">${formatDate(date)}</span>
+                        <span class="transaction-description">${transaction.description}</span>
+                    </div>
+                    <div class="transaction-amount ${transaction.type}">
+                        ${formatCurrency(transaction.amount)}
+                    </div>
+                </div>
+                <div class="transaction-actions">
                     <button onclick="deleteTransaction(${transaction.id})" class="delete-btn">
                         <i class="fas fa-trash"></i>
                     </button>
-                </td>
+                </div>
             `;
-            tableBody.appendChild(row);
+            transactionsList.appendChild(item);
         });
         
         // Atualizar o saldo
@@ -86,6 +135,10 @@ async function updateTransactionsTable() {
 async function deleteTransaction(id) {
     if (confirm('Tem certeza que deseja deletar esta transação?')) {
         try {
+            if (!db) {
+                await initializeDatabase();
+            }
+            
             await db.transactions.delete(id);
             updateTransactionsTable();
         } catch (error) {
@@ -98,31 +151,59 @@ async function deleteTransaction(id) {
 // Função para atualizar o saldo
 async function updateBalance() {
     try {
+        if (!db) {
+            await initializeDatabase();
+        }
+
         const transactions = await db.transactions.toArray();
         let total = 0;
+        let totalReceitas = 0;
+        let totalDespesas = 0;
         
         transactions.forEach(transaction => {
             if (transaction.type === 'receita') {
+                totalReceitas += transaction.amount;
                 total += transaction.amount;
             } else {
+                totalDespesas += transaction.amount;
                 total -= transaction.amount;
             }
         });
         
-        document.getElementById('balance').textContent = formatCurrency(total);
+        document.getElementById('totalReceitas')?.textContent = formatCurrency(totalReceitas);
+        document.getElementById('totalDespesas')?.textContent = formatCurrency(totalDespesas);
+        document.getElementById('saldoTotal')?.textContent = formatCurrency(total);
     } catch (error) {
         console.error('Erro ao atualizar saldo:', error);
     }
 }
 
 // Adicionar eventos quando a página carregar
-document.addEventListener('DOMContentLoaded', () => {
-    // Adicionar evento ao formulário de transação
-    const transactionForm = document.getElementById('transactionForm');
-    if (transactionForm) {
-        transactionForm.addEventListener('submit', addTransaction);
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        await initializeDatabase();
+        
+        // Adicionar evento ao formulário de transação
+        const transactionForm = document.getElementById('transactionForm');
+        if (transactionForm) {
+            transactionForm.addEventListener('submit', addTransaction);
+        }
+        
+        // Atualizar a tabela inicialmente
+        updateTransactionsTable();
+        
+        // Configurar filtro de categoria
+        const categoryFilter = document.getElementById('categoryFilter');
+        if (categoryFilter) {
+            categoryFilter.addEventListener('change', updateTransactionsTable);
+        }
+        
+        // Configurar filtro de mês
+        const monthFilter = document.getElementById('monthFilter');
+        if (monthFilter) {
+            monthFilter.addEventListener('change', updateTransactionsTable);
+        }
+    } catch (error) {
+        console.error('Erro ao inicializar:', error);
     }
-    
-    // Atualizar a tabela inicialmente
-    updateTransactionsTable();
 });
