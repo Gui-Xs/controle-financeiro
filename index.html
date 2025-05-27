@@ -213,50 +213,6 @@
                 </main>
             </div>
         </div>
-                <h2><i class="fas fa-chart-pie"></i> Distribuição de Gastos</h2>
-                <div class="chart-container">
-                    <canvas id="expensesChart"></canvas>
-                </div>
-            </section>
-
-            <section class="transactions">
-                <div class="transactions-header">
-                    <h2><i class="fas fa-list"></i> Transações</h2>
-                    <div class="data-actions">
-                        <button id="exportData" class="action-btn">
-                            <i class="fas fa-file-export"></i>
-                            Exportar JSON
-                        </button>
-                        <button id="exportPDF" class="action-btn">
-                            <i class="fas fa-file-pdf"></i>
-                            Exportar PDF
-                        </button>
-                        <button id="importData" class="action-btn">
-                            <i class="fas fa-file-import"></i>
-                            Importar JSON
-                        </button>
-                        <button id="importReceipt" class="action-btn">
-                            <i class="fas fa-receipt"></i>
-                            Importar Comprovante
-                        </button>
-                        <input type="file" id="fileInput" accept=".json" style="display: none;">
-                        <input type="file" id="receiptInput" accept="image/*" style="display: none;">
-                    </div>
-                </div>
-                <div class="filters">
-                    <select id="categoryFilter">
-                        <option value="todas">Todas Categorias</option>
-                        <option value="alimentacao">Alimentação</option>
-                        <option value="transporte">Transporte</option>
-                        <option value="moradia">Moradia</option>
-                        <option value="outros">Outros</option>
-                    </select>
-                    <select id="monthFilter">
-                        <option value="todos">Todos os Meses</option>
-                    </select>
-                </div>
-                <div class="transactions-container">
     </div>
 </body>
-<script src="script.js"></script>
 </html>
