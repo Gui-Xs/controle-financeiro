@@ -19,7 +19,7 @@
 <body>
     <div id="appContainer">
         <div id="loginScreen" style="display: block;">
-            <header>
+            <div class="login-container">
                 <h1><i class="fas fa-wallet"></i> Controle Financeiro</h1>
                 <div class="theme-switch">
                     <span>Modo Claro</span>
@@ -31,23 +31,24 @@
                 <div id="userStatus">
                     <button id="loginBtn" class="test-button">Entrar com Google</button>
                 </div>
-            </header>
+            </div>
         </div>
         <div id="mainContent" style="display: none;">
-            <header>
-                <h1><i class="fas fa-wallet"></i> Controle Financeiro</h1>
-                <div class="theme-switch">
-                    <span>Modo Claro</span>
-                    <label class="switch">
-                        <input type="checkbox" id="themeToggle">
-                        <span class="slider"></span>
-                    </label>
-                </div>
-                <div id="userStatus">
-                    <button id="logoutBtn" class="test-button" style="display: none;">Sair</button>
-                </div>
-            </header>
-            <main>
+            <div class="app-container">
+                <header>
+                    <h1><i class="fas fa-wallet"></i> Controle Financeiro</h1>
+                    <div class="theme-switch">
+                        <span>Modo Claro</span>
+                        <label class="switch">
+                            <input type="checkbox" id="themeToggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div id="userStatus">
+                        <button id="logoutBtn" class="test-button" style="display: none;">Sair</button>
+                    </div>
+                </header>
+                <main>
                 <section class="add-transaction">
                     <h2><i class="fas fa-plus-circle"></i> Adicionar Transação</h2>
                     <form id="transactionForm">
@@ -196,13 +197,24 @@
                 </section>
             </main>
         </div>
-                <div class="cards">
-                    <div class="card receitas">
-                        <h3><i class="fas fa-arrow-up"></i> Receitas</h3>
-                        <p>R$ <span id="totalReceitas">0,00</span></p>
-                    </div>
-                    <div class="card despesas">
-                        <h3><i class="fas fa-arrow-down"></i> Despesas</h3>
+        <div class="cards">
+            <div class="card receitas">
+                <h3><i class="fas fa-arrow-up"></i> Receitas</h3>
+                <p>R$ <span id="totalReceitas">0,00</span></p>
+            </div>
+            <div class="card despesas">
+                <h3><i class="fas fa-arrow-down"></i> Despesas</h3>
+                <p>R$ <span id="totalDespesas">0,00</span></p>
+            </div>
+            <div class="card cartao">
+                <h3><i class="fas fa-credit-card"></i> Despesas Cartão</h3>
+                <p>R$ <span id="totalCartao">0,00</span></p>
+            </div>
+            <div class="card saldo">
+                <h3><i class="fas fa-coins"></i> Saldo</h3>
+                <p>R$ <span id="saldoTotal">0,00</span></p>
+            </div>
+        </div>
                         <p>R$ <span id="totalDespesas">0,00</span></p>
                     </div>
                     <div class="card cartao">

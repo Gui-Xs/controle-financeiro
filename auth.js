@@ -41,18 +41,20 @@ function updateUI(user) {
         return;
     }
     
+    // Garantir que apenas uma tela seja visível
+    loginScreen.style.display = 'none';
+    mainContent.style.display = 'none';
+    loginBtn.style.display = 'block';
+    logoutBtn.style.display = 'none';
+    
     if (user && user.uid === 'GB0bUGXjtgUvNQoXrCsiOW6HXYJ2') {
         console.log('Usuário autorizado:', user.uid);
-        loginScreen.style.display = 'none';
         mainContent.style.display = 'block';
-        loginBtn.style.display = 'none';
         logoutBtn.style.display = 'block';
     } else {
         console.log('Usuário não autorizado ou não logado');
         loginScreen.style.display = 'block';
-        mainContent.style.display = 'none';
         loginBtn.style.display = 'block';
-        logoutBtn.style.display = 'none';
     }
 }
 
