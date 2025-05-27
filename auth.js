@@ -6,7 +6,8 @@ const firebaseConfig = {
     projectId: "controle-financeiro-9d7c4",
     storageBucket: "controle-financeiro-9d7c4.firebasestorage.app",
     messagingSenderId: "698161065367",
-    appId: "1:698161065367:web:8ddea9ba6dcb1b723c68d2"
+    appId: "1:698161065367:web:8ddea9ba6dcb1b723c68d2",
+    cookieFlags: 'SameSite=None; Secure; Partitioned'
 };
 
 // Inicializar Firebase
@@ -22,20 +23,14 @@ console.log('Autenticação configurada:', auth);
 // Configurar provedor do Google
 const provider = new firebase.auth.GoogleAuthProvider();
 provider.setCustomParameters({
-    prompt: 'select_account'
-});
-
-// Configurar opções de CORS
-provider.setCustomParameters({
-    'client_id': '698161065367-8g6933849408879468685g6933849408879468685.apps.googleusercontent.com',
-    'cookie_policy': 'single_host_origin',
-    'redirect_uri': window.location.origin
+    prompt: 'select_account',
+    cookie_policy: 'single_host_origin'
 });
 
 // Configurar opções de autenticação
 firebase.auth().setPersistence(firebase.auth.Auth.Persistence.SESSION);
 
-console.log('Provedor do Google configurado com CORS');
+console.log('Provedor do Google configurado com configurações de cookie');
 
 // Função para atualizar a interface
 function updateUI(user) {
