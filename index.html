@@ -27,12 +27,21 @@
                         <input type="checkbox" id="themeToggle">
                         <span class="slider"></span>
                     </label>
+                    <div class="import-export-buttons">
+                        <label class="import-btn">
+                            <input type="file" accept=".pdf" onchange="importFromPDF(event)" style="display: none;">
+                            <i class="fas fa-file-import"></i> Importar PDF
+                        </label>
+                        <button onclick="exportToPDF()" class="export-btn">
+                            <i class="fas fa-file-export"></i> Exportar PDF
+                        </button>
+                    </div>
                 </div>
                 <div id="userStatus">
                     <button id="loginBtn" class="test-button">
-    <i class="fab fa-google"></i>
-    Entrar com Google
-</button>
+                        <i class="fab fa-google"></i>
+                        Entrar com Google
+                    </button>
                 </div>
             </div>
         </div>

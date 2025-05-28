@@ -33,6 +33,132 @@ async function initializeDatabase() {
     }
 }
 
+// Função para exportar transações para PDF
+async function exportToPDF() {
+    try {
+        if (!db) {
+            await initializeDatabase();
+        }
+
+        const transactions = await db.transactions.toArray();
+        const doc = new jsPDF();
+        
+        // Título
+        doc.setFontSize(20);
+        doc.text('Relatório de Transações', 105, 20, { align: 'center' });
+        
+        // Data
+        doc.setFontSize(12);
+        doc.text(`Gerado em: ${formatDate(new Date())}`, 105, 30, { align: 'center' });
+        
+        // Cabeçalho da tabela
+        doc.setFontSize(12);
+        const headers = ['Data', 'Descrição', 'Categoria', 'Valor', 'Tipo'];
+        const startY = 40;
+        let y = startY;
+        
+        // Adicionar cabeçalho
+        headers.forEach((header, i) => {
+            doc.text(header, 15 + (i * 50), y);
+        });
+        y += 10;
+        
+        // Adicionar linhas
+        transactions.forEach((transaction, index) => {
+            const date = formatDate(new Date(transaction.date));
+            const amount = formatCurrency(transaction.amount);
+            const type = transaction.type === 'receita' ? 'Receita' : 'Despesa';
+            
+            const row = [date, transaction.description, transaction.category, amount, type];
+            
+            row.forEach((cell, i) => {
+                doc.text(cell, 15 + (i * 50), y + (index * 10));
+            });
+        });
+        
+        // Salvar PDF
+        doc.save('relatorio-transacoes.pdf');
+    } catch (error) {
+        console.error('Erro ao exportar PDF:', error);
+        alert('Erro ao gerar PDF. Por favor, tente novamente.');
+    }
+}
+
+// Função para importar transações do PDF
+async function importFromPDF(event) {
+    try {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const text = await Tesseract.recognize(
+                    e.target.result,
+                    'por',
+                    {
+                        logger: m => console.log(m)
+                    }
+                );
+                
+                const content = text.data.text;
+                const transactions = parseTransactionsFromText(content);
+                
+                if (!db) {
+                    await initializeDatabase();
+                }
+                
+                // Adicionar transações
+                for (const transaction of transactions) {
+                    await db.transactions.add(transaction);
+                }
+                
+                // Atualizar tabela
+                updateTransactionsTable();
+                
+                alert('Transações importadas com sucesso!');
+            } catch (error) {
+                console.error('Erro ao processar PDF:', error);
+                alert('Erro ao processar o PDF. Por favor, tente novamente.');
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    } catch (error) {
+        console.error('Erro ao importar PDF:', error);
+        alert('Erro ao importar PDF. Por favor, tente novamente.');
+    }
+}
+
+// Função para parsear transações do texto
+function parseTransactionsFromText(text) {
+    const transactions = [];
+    const lines = text.split('\n');
+    
+    for (const line of lines) {
+        const match = line.match(/(\d{2}\/\d{2}\/\d{4})\s+(.+?)\s+(\d+\.?\d*),\d{2}\s+(Receita|Despesa)/);
+        if (match) {
+            const [_, dateStr, description, amountStr, type] = match;
+            const date = new Date(dateStr);
+            const amount = parseFloat(amountStr.replace(',', '.'));
+            
+            transactions.push({
+                date: date.getTime(),
+                description: description.trim(),
+                amount,
+                type: type.toLowerCase(),
+                category: 'importado',
+                paymentMethod: 'importado',
+                installments: 1,
+                isRecurring: false,
+                frequency: '',
+                endDate: null
+            });
+        }
+    }
+    
+    return transactions;
+}
+
 // Função para adicionar transação
 async function addTransaction(e) {
     e.preventDefault();
