@@ -264,28 +264,52 @@ function parseReceiptContent(text) {
 // Função para adicionar transação
 async function addTransaction(e) {
     e.preventDefault();
+    console.log('Iniciando adição de transação...');
     
-    const description = document.getElementById('description')?.value;
-    const amount = parseFloat(document.getElementById('amount')?.value);
-    const type = document.getElementById('type')?.value;
-    const category = document.getElementById('category')?.value;
-    const paymentMethod = document.getElementById('paymentMethod')?.value;
-    const installments = parseInt(document.getElementById('installments')?.value) || 1;
-    const isRecurring = document.getElementById('isRecurring')?.checked || false;
-    const frequency = document.getElementById('frequency')?.value;
-    const endDate = document.getElementById('endDate')?.value;
-    const date = new Date(document.getElementById('date')?.value || new Date());
+    const form = document.getElementById('transactionForm');
+    if (!form) {
+        console.error('Formulário não encontrado');
+        alert('Erro: Formulário não encontrado');
+        return;
+    }
+
+    const description = form.querySelector('#description')?.value;
+    const amount = parseFloat(form.querySelector('#amount')?.value);
+    const type = form.querySelector('#type')?.value;
+    const category = form.querySelector('#category')?.value;
+    const paymentMethod = form.querySelector('#paymentMethod')?.value;
+    const installments = parseInt(form.querySelector('#installments')?.value) || 1;
+    const isRecurring = form.querySelector('#isRecurring')?.checked || false;
+    const frequency = form.querySelector('#frequency')?.value;
+    const endDate = form.querySelector('#endDate')?.value;
+    const date = new Date(form.querySelector('#date')?.value || new Date());
     
+    console.log('Dados do formulário:', {
+        description,
+        amount,
+        type,
+        category,
+        paymentMethod,
+        installments,
+        isRecurring,
+        frequency,
+        endDate,
+        date: date.getTime()
+    });
+
     if (!description || isNaN(amount)) {
+        console.error('Campos obrigatórios não preenchidos');
         alert('Por favor, preencha todos os campos corretamente');
         return;
     }
     
     try {
         if (!db) {
+            console.log('Inicializando banco de dados...');
             await initializeDatabase();
         }
 
+        console.log('Criando transação...');
         const transaction = {
             date: date.getTime(),
             description,
@@ -299,13 +323,18 @@ async function addTransaction(e) {
             endDate
         };
         
+        console.log('Transação a ser adicionada:', transaction);
+        
         await db.transactions.add(transaction);
+        console.log('Transação adicionada com sucesso!');
         
         // Atualizar a tabela
-        updateTransactionsTable();
+        console.log('Atualizando tabela...');
+        await updateTransactionsTable();
         
         // Limpar o formulário
-        document.getElementById('transactionForm')?.reset();
+        console.log('Limpando formulário...');
+        form.reset();
         
     } catch (error) {
         console.error('Erro ao adicionar transação:', error);
