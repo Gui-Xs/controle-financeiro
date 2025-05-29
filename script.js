@@ -544,6 +544,10 @@ async function updateTransactionsTable() {
         console.log('Limpando tabela...');
         transactionsList.innerHTML = '';
         
+        console.log('Buscando transações...');
+        const transactions = await db.transactions.toArray();
+        console.log('Transações encontradas:', transactions);
+        
         console.log('Criando itens da tabela...');
         if (transactions.length > 0) {
             console.log(`Encontradas ${transactions.length} transações para mostrar`);
@@ -773,9 +777,7 @@ function updateChart(categoryTotals) {
     // Preparar dados para o gráfico
     const labels = Object.keys(categoryTotals);
     const data = Object.values(categoryTotals);
-    const backgroundColors = labels.map(() => {
-        return `hsl(${Math.random() * 360}, 70%, 50%)`;
-    });
+    const backgroundColors = labels.map(category => categoryColors[category] || categoryColors['outros']);
 
     // Configuração do gráfico
     const config = {
