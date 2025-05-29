@@ -82,11 +82,16 @@ function formatDate(date) {
                 return new Intl.DateTimeFormat('pt-BR').format(d);
             }
 
-            // Se ainda não deu certo, tentar extrair a data do formato inválido
-            const invalidDateMatch = date.match(/\d{2}-\d{2}-\d{4}/);
-            if (invalidDateMatch) {
-                const [day, month, year] = invalidDateMatch[0].split('-');
-                return `${day}/${month}/${year}`;
+            // Se for uma string inválida (contendo 'undefined' ou 'NaN')
+            if (typeof date === 'string' && (date.includes('undefined') || date.includes('NaN'))) {
+                // Tentar extrair apenas os números válidos
+                const numbers = date.match(/\d+/g) || [];
+                if (numbers.length >= 3) {
+                    // Ordenar os números do menor para o maior
+                    const sortedNumbers = numbers.map(Number).sort((a, b) => a - b);
+                    const [day, month, year] = sortedNumbers;
+                    return `${day.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${year}`;
+                }
             }
         }
 
@@ -488,8 +493,11 @@ async function addTransaction(e) {
             return;
         }
 
-        // Se não houver data, usar a data atual
-        const date = dateInput || new Date().toISOString().split('T')[0];
+        // Se não houver data ou for inválida, usar a data atual
+        let date = dateInput;
+        if (!date || date.includes('undefined') || date.includes('NaN')) {
+            date = new Date().toISOString();
+        }
 
         // Processar a data
         const transaction = {
