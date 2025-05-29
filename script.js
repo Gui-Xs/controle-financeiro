@@ -7,7 +7,24 @@ function formatCurrency(value) {
 }
 
 function formatDate(date) {
-    return new Intl.DateTimeFormat('pt-BR').format(date);
+    try {
+        // Se date for um número (timestamp), converte para Date
+        if (typeof date === 'number') {
+            date = new Date(date);
+        }
+        
+        // Verifica se é uma data válida
+        if (date instanceof Date && !isNaN(date.getTime())) {
+            return new Intl.DateTimeFormat('pt-BR').format(date);
+        }
+        
+        // Se não for uma data válida, retorna uma string vazia
+        console.warn('Data inválida encontrada:', date);
+        return '';
+    } catch (error) {
+        console.error('Erro ao formatar data:', error);
+        return '';
+    }
 }
 
 // Função para inicializar o banco de dados
@@ -329,53 +346,58 @@ async function updateTransactionsTable() {
         }
 
         const transactions = await db.transactions.toArray();
-        const transactionsList = document.getElementById('transactionsList');
-        
-        if (!transactionsList) {
-            console.error('Elemento transactionsList não encontrado');
-            return;
-        }
+        const tableBody = document.getElementById('transactionsBody');
+        if (!tableBody) return;
 
-        transactionsList.innerHTML = '';
-        
-        if (transactions.length === 0) {
-            return;
-        }
+        // Limpar tabela
+        tableBody.innerHTML = '';
 
-        transactions.forEach(transaction => {
-            const item = document.createElement('li');
-            item.className = 'transaction-item';
-            
-            const date = new Date(transaction.date);
-            item.innerHTML = `
-                <div class="transaction-details">
-                    <div class="transaction-icon" data-category="${transaction.category}"></div>
-                    <span class="transaction-category">${transaction.category}</span>
-                    <span class="transaction-description">${transaction.description}</span>
-                    <span class="transaction-date">${formatDate(date)}</span>
-                    <div class="transaction-amount ${transaction.type}">
-                        ${formatCurrency(transaction.amount)}
-                    </div>
-                </div>
-                <div class="transaction-actions">
-                    <button onclick="deleteTransaction(${transaction.id})" class="delete-btn">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            `;
-            transactionsList.appendChild(item);
+        // Ordenar transações por data (mais recentes primeiro)
+        transactions.sort((a, b) => {
+            const dateA = new Date(a.date);
+            const dateB = new Date(b.date);
+            return dateB.getTime() - dateA.getTime();
         });
-        
-        // Configurar o gráfico
-        await configureChart();
-        
-        // Atualizar o saldo
+
+        // Adicionar linhas
+        transactions.forEach(transaction => {
+            try {
+                const row = document.createElement('tr');
+                const date = formatDate(transaction.date);
+                row.innerHTML = `
+                    <td>${date}</td>
+                    <td>${transaction.description || ''}</td>
+                    <td>${transaction.category || ''}</td>
+                    <td class="amount ${transaction.type || 'despesa'}">
+                        ${transaction.amount ? formatCurrency(transaction.amount) : ''}
+                    </td>
+                    <td>${transaction.type === 'receita' ? 'Receita' : 'Despesa'}</td>
+                    <td>
+                        <button class="action-btn edit-btn" onclick="editTransaction(${transaction.id})">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="action-btn delete-btn" onclick="deleteTransaction(${transaction.id})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            } catch (error) {
+                console.error('Erro ao criar linha da tabela:', error);
+            }
+        });
+
+        // Atualizar gráficos
+        updateCharts();
+
+        // Atualizar saldo
         updateBalance();
     } catch (error) {
         console.error('Erro ao atualizar tabela:', error);
     }
 }
 
+// Restante do código...
 // Função para deletar transação
 async function deleteTransaction(id) {
     if (confirm('Tem certeza que deseja deletar esta transação?')) {
