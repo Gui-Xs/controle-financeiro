@@ -47,29 +47,38 @@ function getCategoryIcon(category) {
 // Função para formatar data
 function formatDate(date) {
     try {
-        // Se date for uma string no formato YYYY-MM-DD
-        if (typeof date === 'string' && date.match(/^\d{4}-\d{2}-\d{2}$/)) {
-            const [year, month, day] = date.split('-');
-            return `${day}/${month}/${year}`;
-        }
-        
-        // Se for um número (timestamp), usar Intl para formatar
+        // Primeiro tentar converter para Date
+        let d;
         if (typeof date === 'number') {
-            return new Intl.DateTimeFormat('pt-BR').format(new Date(date));
-        }
-        
-        // Se for uma string em outro formato, tentar converter
-        if (typeof date === 'string') {
-            // Tentar converter usando Date
-            const d = new Date(date);
-            if (!isNaN(d.getTime())) {
-                return new Intl.DateTimeFormat('pt-BR').format(d);
+            d = new Date(date);
+        } else if (typeof date === 'string') {
+            // Se for string, tentar converter
+            d = new Date(date);
+            // Se não der certo, tentar converter DD/MM/YYYY
+            if (isNaN(d.getTime())) {
+                const dateParts = date.split('/');
+                if (dateParts.length === 3) {
+                    const [day, month, year] = dateParts;
+                    d = new Date(year, month - 1, day);
+                }
             }
-            // Se não der certo, retornar a string original
-            return date;
         }
-        
-        // Se não for uma data válida, retornar uma string vazia
+
+        // Se for uma data válida, formatar
+        if (d instanceof Date && !isNaN(d.getTime())) {
+            return new Intl.DateTimeFormat('pt-BR').format(d);
+        }
+
+        // Se não for uma data válida, mas for uma string, tentar extrair os números
+        if (typeof date === 'string') {
+            const match = date.match(/\d+/g);
+            if (match && match.length >= 3) {
+                const [year, month, day] = match;
+                return `${day}/${month}/${year}`;
+            }
+        }
+
+        // Se nada der certo, retornar uma string vazia
         return '';
     } catch (error) {
         console.error('Erro ao formatar data:', error);
@@ -570,8 +579,10 @@ async function updateTransactionsTable() {
             const li = document.createElement('li');
             li.className = 'transaction-item';
             
-            // Usar a data diretamente
-            const date = formatDate(transaction.date);
+            // Garantir que a data seja uma string antes de usar
+            const dateStr = String(transaction.date || '');
+            // Se não for uma string válida no formato YYYY-MM-DD, tentar formatar
+            const date = formatDate(dateStr);
             
             const amount = formatCurrency(transaction.amount);
             const type = transaction.type === 'receita' ? 'Receita' : 'Despesa';
