@@ -47,52 +47,28 @@ function getCategoryIcon(category) {
 // Função para formatar data
 function formatDate(date) {
     try {
-        // Se for um número (timestamp), usar Intl para formatar
-        if (typeof date === 'number') {
-            return new Intl.DateTimeFormat('pt-BR').format(new Date(date));
-        }
-        
         // Se date for uma string no formato YYYY-MM-DD
         if (typeof date === 'string' && date.match(/^\d{4}-\d{2}-\d{2}$/)) {
             const [year, month, day] = date.split('-');
             return `${day}/${month}/${year}`;
         }
-        
+
         // Se for uma string em outro formato, tentar converter
         if (typeof date === 'string') {
-            // Primeiro tentar extrair os números usando regex
-            const match = date.match(/\d+/g);
-            if (match && match.length >= 3) {
-                // Ordenar os números do menor para o maior
-                const sortedNumbers = match.map(Number).sort((a, b) => a - b);
-                
-                // Se temos 3 números, assumir que são dia, mês e ano
-                if (sortedNumbers.length === 3) {
-                    const [day, month, year] = sortedNumbers;
-                    // Verificar se o dia e mês estão dentro dos limites
-                    if (day >= 1 && day <= 31 && month >= 1 && month <= 12) {
-                        return `${day.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${year}`;
-                    }
-                }
+            // Remover qualquer caractere inválido
+            date = date.replace(/[^\d-]/g, '');
+            // Se ainda tiver mais de 10 caracteres, pegar os últimos 10
+            if (date.length > 10) {
+                date = date.slice(-10);
             }
-
-            // Se ainda não deu certo, tentar converter usando Date
-            const d = new Date(date);
-            if (d instanceof Date && !isNaN(d.getTime())) {
-                return new Intl.DateTimeFormat('pt-BR').format(d);
+            // Se tiver menos de 10 caracteres, usar data atual
+            if (date.length !== 10) {
+                date = new Date().toISOString().split('T')[0];
             }
-
-            // Se for uma string inválida (contendo 'undefined' ou 'NaN')
-            if (typeof date === 'string' && (date.includes('undefined') || date.includes('NaN'))) {
-                // Tentar extrair apenas os números válidos
-                const numbers = date.match(/\d+/g) || [];
-                if (numbers.length >= 3) {
-                    // Ordenar os números do menor para o maior
-                    const sortedNumbers = numbers.map(Number).sort((a, b) => a - b);
-                    const [day, month, year] = sortedNumbers;
-                    return `${day.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${year}`;
-                }
-            }
+            
+            // Agora devemos ter uma string no formato YYYY-MM-DD
+            const [year, month, day] = date.split('-');
+            return `${day}/${month}/${year}`;
         }
 
         // Se nada der certo, usar a data atual
@@ -497,6 +473,20 @@ async function addTransaction(e) {
         let date = dateInput;
         if (!date || date.includes('undefined') || date.includes('NaN')) {
             date = new Date().toISOString();
+        }
+
+        // Garantir que a data esteja sempre no formato YYYY-MM-DD
+        if (typeof date === 'string') {
+            // Remover qualquer caractere inválido
+            date = date.replace(/[^\d-]/g, '');
+            // Se ainda tiver mais de 10 caracteres, pegar os últimos 10
+            if (date.length > 10) {
+                date = date.slice(-10);
+            }
+            // Se tiver menos de 10 caracteres, usar data atual
+            if (date.length !== 10) {
+                date = new Date().toISOString().split('T')[0];
+            }
         }
 
         // Processar a data
