@@ -53,14 +53,20 @@ function formatDate(date) {
             return `${day}/${month}/${year}`;
         }
         
-        // Se date for uma string no formato DD/MM/YYYY
-        if (typeof date === 'string' && date.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
-            return date;
-        }
-        
         // Se for um número (timestamp), usar Intl para formatar
         if (typeof date === 'number') {
             return new Intl.DateTimeFormat('pt-BR').format(new Date(date));
+        }
+        
+        // Se for uma string em outro formato, tentar converter
+        if (typeof date === 'string') {
+            // Tentar converter usando Date
+            const d = new Date(date);
+            if (!isNaN(d.getTime())) {
+                return new Intl.DateTimeFormat('pt-BR').format(d);
+            }
+            // Se não der certo, retornar a string original
+            return date;
         }
         
         // Se não for uma data válida, retornar uma string vazia
@@ -564,16 +570,8 @@ async function updateTransactionsTable() {
             const li = document.createElement('li');
             li.className = 'transaction-item';
             
-            // Garantir que a data seja uma string antes de usar match
-            const dateStr = String(transaction.date || '');
-            // Se não for uma string válida no formato YYYY-MM-DD, tentar formatar
-            if (!dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
-                date = formatDate(dateStr);
-            } else {
-                // Se já está no formato YYYY-MM-DD, formatar para DD/MM/YYYY
-                const [year, month, day] = dateStr.split('-');
-                date = `${day}/${month}/${year}`;
-            }
+            // Usar a data diretamente
+            const date = formatDate(transaction.date);
             
             const amount = formatCurrency(transaction.amount);
             const type = transaction.type === 'receita' ? 'Receita' : 'Despesa';
