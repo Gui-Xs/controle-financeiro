@@ -58,18 +58,13 @@ function formatDate(date) {
             return date;
         }
         
-        // Se for um número (timestamp) ou uma string, tentar converter para Date
-        try {
-            const d = new Date(date);
-            if (d instanceof Date && !isNaN(d.getTime())) {
-                return new Intl.DateTimeFormat('pt-BR').format(d);
-            }
-        } catch (e) {
-            console.log('Erro ao converter data:', e);
+        // Se for um número (timestamp), usar Intl para formatar
+        if (typeof date === 'number') {
+            return new Intl.DateTimeFormat('pt-BR').format(new Date(date));
         }
         
-        // Se não for uma data válida, retornar a string original
-        return date || '';
+        // Se não for uma data válida, retornar uma string vazia
+        return '';
     } catch (error) {
         console.error('Erro ao formatar data:', error);
         return '';
@@ -575,7 +570,9 @@ async function updateTransactionsTable() {
             if (!dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
                 date = formatDate(dateStr);
             } else {
-                date = dateStr;
+                // Se já está no formato YYYY-MM-DD, formatar para DD/MM/YYYY
+                const [year, month, day] = dateStr.split('-');
+                date = `${day}/${month}/${year}`;
             }
             
             const amount = formatCurrency(transaction.amount);
