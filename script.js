@@ -81,13 +81,20 @@ function formatDate(date) {
             if (d instanceof Date && !isNaN(d.getTime())) {
                 return new Intl.DateTimeFormat('pt-BR').format(d);
             }
+
+            // Se ainda não deu certo, tentar extrair a data do formato inválido
+            const invalidDateMatch = date.match(/\d{2}-\d{2}-\d{4}/);
+            if (invalidDateMatch) {
+                const [day, month, year] = invalidDateMatch[0].split('-');
+                return `${day}/${month}/${year}`;
+            }
         }
 
-        // Se nada der certo, retornar uma string vazia
-        return '';
+        // Se nada der certo, usar a data atual
+        return new Intl.DateTimeFormat('pt-BR').format(new Date());
     } catch (error) {
         console.error('Erro ao formatar data:', error);
-        return '';
+        return new Intl.DateTimeFormat('pt-BR').format(new Date());
     }
 }
 
