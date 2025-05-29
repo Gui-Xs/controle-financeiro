@@ -483,10 +483,9 @@ async function updateTransactionsTable() {
                             <i class="fas fa-${categoryIcon}"></i>
                         </span>
                         <span class="category">${transaction.category}</span>
-                        <span class="amount ${transaction.type}">${amount}</span>
-                        <span class="type">${type}</span>
                     </div>
                     <div class="transaction-actions">
+                        <span class="amount ${transaction.type}">${amount}</span>
                         <button class="edit-btn" onclick="editTransaction(${transaction.id})">
                             <i class="fas fa-edit"></i>
                         </button>

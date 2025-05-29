@@ -237,7 +237,16 @@ body {
 
 .transaction-actions {
     display: flex;
-    gap: 8px;
+    align-items: center;
+    gap: 16px;
+}
+
+.transaction-actions .amount {
+    font-weight: 600;
+    margin-right: auto;
+    padding: 8px 16px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
 }
 
 .transaction-actions button {
@@ -272,13 +281,6 @@ body {
 
 .amount.despesa {
     color: var(--danger-color);
-}
-
-.type {
-    text-transform: capitalize;
-    font-size: 0.9rem;
-    color: var(--text-color);
-    opacity: 0.8;
 }
 
 .empty {
