@@ -6,7 +6,23 @@ function formatCurrency(value) {
     }).format(value);
 }
 
-// Mapeamento de categorias para ícones
+// Mapeamento de categorias para ícones e cores
+const categoryColors = {
+    'alimentacao': '#FF6B6B',  // Vermelho
+    'transporte': '#4ECDC4',   // Verde água
+    'moradia': '#FFEEAD',      // Amarelo claro
+    'saude': '#8892B0',        // Azul escuro
+    'educacao': '#FF9F1C',     // Laranja
+    'lazer': '#A8E6CF',        // Verde claro
+    'vestuario': '#FF6B81',    // Rosa
+    'tecnologia': '#45B7D1',   // Azul claro
+    'servicos': '#FF9B9B',     // Vermelho claro
+    'investimentos': '#9B59B6', // Roxo
+    'viagem': '#4ECDC4',       // Verde água
+    'presente': '#FF6B6B',     // Vermelho
+    'outros': '#95A5A6'        // Cinza
+};
+
 const categoryIcons = {
     'alimentacao': 'utensils',
     'transporte': 'car',
@@ -689,7 +705,7 @@ async function updateTotals() {
                 if (transaction.paymentMethod === 'cartao_credito') {
                     totalCartao += transaction.amount;
                 }
-                
+
                 // Soma por categoria
                 if (categoryTotals[transaction.category]) {
                     categoryTotals[transaction.category] += transaction.amount;
