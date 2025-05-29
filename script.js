@@ -500,11 +500,6 @@ async function addTransaction(e) {
             endDate: document.getElementById('endDate').value
         };
 
-        // Processar a data corretamente
-        const [day, month, year] = dateInput.split('/');
-        // Garantir que os valores existam antes de usar padStart
-        transaction.date = `${year}-${(month || '').padStart(2, '0')}-${(day || '').padStart(2, '0')}`;
-
         // Adicionar a transação
         await db.transactions.add(transaction);
         
