@@ -128,19 +128,11 @@ async function initializeDatabase() {
         db.version(2).stores({
             transactions: '++id, date, description, amount, type, category, paymentMethod, installments, isRecurring, frequency, endDate'
         });
-
+        
         // Garantir que o banco seja inicializado
         await db.open();
         console.log('Banco de dados inicializado com sucesso');
         
-        // Verificar se há transações no banco
-        const testTransaction = await db.transactions.first();
-        if (testTransaction) {
-            console.log('Transações encontradas no banco:', testTransaction);
-        } else {
-            console.log('Nenhuma transação encontrada no banco');
-        }
-
         // Exportar o banco de dados para uso global
         window.db = db;
         return db;
@@ -485,18 +477,14 @@ async function addTransaction(e) {
 
         // Garantir que a data esteja sempre no formato YYYY-MM-DD
         if (typeof date === 'string') {
-            // Remover qualquer caractere inválido (exceto números e hífen)
+            // Remover qualquer caractere inválido
             date = date.replace(/[^\d-]/g, '');
-            // Se tiver mais de 10 caracteres, pegar os últimos 10
+            // Se ainda tiver mais de 10 caracteres, pegar os últimos 10
             if (date.length > 10) {
                 date = date.slice(-10);
             }
             // Se tiver menos de 10 caracteres, usar data atual
             if (date.length !== 10) {
-                date = new Date().toISOString().split('T')[0];
-            }
-            // Se ainda tiver caracteres inválidos, usar data atual
-            if (!date.match(/^\d{4}-\d{2}-\d{2}$/)) {
                 date = new Date().toISOString().split('T')[0];
             }
         }
@@ -513,9 +501,7 @@ async function addTransaction(e) {
         };
 
         // Adicionar a transação
-        console.log('Adicionando transação:', transaction);
-        const result = await db.transactions.add(transaction);
-        console.log('Transação adicionada com sucesso:', result);
+        await db.transactions.add(transaction);
         
         // Atualizar a tabela
         await updateTransactionsTable();
@@ -753,23 +739,37 @@ async function updateTotals() {
             saldo: formatCurrency(saldo)
         });
 
-        // Atualizar totais
-        document.getElementById('totalReceitas').textContent = formatCurrency(totalReceitas);
-        document.getElementById('totalDespesas').textContent = formatCurrency(totalDespesas);
-        document.getElementById('totalCartao').textContent = formatCurrency(totalCartao);
-        document.getElementById('saldoTotal').textContent = formatCurrency(saldo);
+        const totalReceitasElement = document.getElementById('totalReceitas');
+        const totalDespesasElement = document.getElementById('totalDespesas');
+        const totalCartaoElement = document.getElementById('totalCartao');
+        const saldoTotalElement = document.getElementById('saldoTotal');
+
+        if (totalReceitasElement) {
+            totalReceitasElement.textContent = formatCurrency(totalReceitas);
+        } else {
+            console.error('Elemento totalReceitas não encontrado');
+        }
+
+        if (totalDespesasElement) {
+            totalDespesasElement.textContent = formatCurrency(totalDespesas);
+        } else {
+            console.error('Elemento totalDespesas não encontrado');
+        }
+
+        if (totalCartaoElement) {
+            totalCartaoElement.textContent = formatCurrency(totalCartao);
+        } else {
+            console.error('Elemento totalCartao não encontrado');
+        }
 
         if (saldoTotalElement) {
             saldoTotalElement.textContent = formatCurrency(saldo);
         } else {
-            console.error('Elemento totalReceitas, totalDespesas, totalCartao ou saldoTotal não encontrado');
+            console.error('Elemento saldoTotal não encontrado');
         }
 
         // Atualizar gráfico
         updateChart(categoryTotals);
-        
-        // Log de sucesso
-        console.log('Totais atualizados com sucesso');
     } catch (error) {
         console.error('Erro ao atualizar totais:', error);
         alert('Erro ao atualizar totais. Por favor, tente novamente.');
@@ -845,7 +845,6 @@ function updateChart(categoryTotals) {
 // Adicionar eventos quando a página carregar
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        console.log('Iniciando carregamento da página...');
         await initializeDatabase();
         
         // Adicionar evento ao formulário de transação
