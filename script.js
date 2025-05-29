@@ -585,7 +585,7 @@ async function updateTransactionsTable() {
             const categoryIcon = getCategoryIcon(transaction.category);
             li.innerHTML = `
                 <div class="transaction-info">
-                    <span class="date">${date}</span>
+                    <span class="date">${formattedDate}</span>
                     <span class="description">${transaction.description}</span>
                     <span class="category-icon">
                         <i class="fas fa-${categoryIcon}"></i>
