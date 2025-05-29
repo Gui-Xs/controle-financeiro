@@ -570,46 +570,73 @@ async function configureChart() {
     }
 }
 
-// Função para atualizar o saldo e o gráfico
-async function updateBalance() {
+// Função para atualizar os totais
+async function updateTotals() {
+    console.log('Atualizando totais...');
+    
     try {
         if (!db) {
+            console.log('Inicializando banco de dados...');
             await initializeDatabase();
         }
 
         const transactions = await db.transactions.toArray();
-        const totals = {
-            receitas: 0,
-            despesas: 0,
-            total: 0
-        };
-        
+        console.log('Transações para cálculo de totais:', transactions);
+
+        let totalReceitas = 0;
+        let totalDespesas = 0;
+        let totalCartao = 0;
+
         transactions.forEach(transaction => {
-            const amount = transaction.amount || 0;
-            
             if (transaction.type === 'receita') {
-                totals.receitas += amount;
-                totals.total += amount;
+                totalReceitas += transaction.amount;
             } else {
-                totals.despesas += amount;
-                totals.total -= amount;
+                totalDespesas += transaction.amount;
+                if (transaction.paymentMethod === 'cartao_credito') {
+                    totalCartao += transaction.amount;
+                }
             }
         });
-        
-        // Atualizar os totais nos elementos específicos
-        document.getElementById('totalReceitas').textContent = formatCurrency(totals.receitas);
-        document.getElementById('totalDespesas').textContent = formatCurrency(totals.despesas);
-        document.getElementById('saldoTotal').textContent = formatCurrency(totals.total);
-        
-        // Calcular total do cartão
-        const cartaoTotal = transactions.reduce((sum, transaction) => {
-            if (transaction.paymentMethod === 'cartao_credito') {
-                return sum + (transaction.type === 'despesa' ? transaction.amount : -transaction.amount);
-            }
-            return sum;
-        }, 0);
-        document.getElementById('totalCartao').textContent = formatCurrency(cartaoTotal);
+
+        const saldo = totalReceitas - totalDespesas;
+        console.log('Totais calculados:', {
+            receitas: formatCurrency(totalReceitas),
+            despesas: formatCurrency(totalDespesas),
+            cartao: formatCurrency(totalCartao),
+            saldo: formatCurrency(saldo)
+        });
+
+        const totalReceitasElement = document.getElementById('totalReceitas');
+        const totalDespesasElement = document.getElementById('totalDespesas');
+        const totalCartaoElement = document.getElementById('totalCartao');
+        const saldoTotalElement = document.getElementById('saldoTotal');
+
+        if (totalReceitasElement) {
+            totalReceitasElement.textContent = formatCurrency(totalReceitas);
+        } else {
+            console.error('Elemento totalReceitas não encontrado');
+        }
+
+        if (totalDespesasElement) {
+            totalDespesasElement.textContent = formatCurrency(totalDespesas);
+        } else {
+            console.error('Elemento totalDespesas não encontrado');
+        }
+
+        if (totalCartaoElement) {
+            totalCartaoElement.textContent = formatCurrency(totalCartao);
+        } else {
+            console.error('Elemento totalCartao não encontrado');
+        }
+
+        if (saldoTotalElement) {
+            saldoTotalElement.textContent = formatCurrency(saldo);
+        } else {
+            console.error('Elemento saldoTotal não encontrado');
+        }
     } catch (error) {
+        console.error('Erro ao atualizar totais:', error);
+        alert('Erro ao atualizar totais. Por favor, tente novamente.');
         console.error('Erro ao atualizar saldo:', error);
     }
 }
