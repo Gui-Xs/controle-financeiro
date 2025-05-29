@@ -52,14 +52,24 @@ function formatDate(date) {
             return `${day}/${month}/${year}`;
         }
         
+        // Se date for uma string no formato DD/MM/YYYY
+        if (typeof date === 'string' && date.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+            return date;
+        }
+        
         // Se date for um número (timestamp), converte para Date
         if (typeof date === 'number') {
             date = new Date(date);
         }
         
-        // Se date for uma string no formato DD/MM/YYYY
-        if (typeof date === 'string' && date.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
-            return date;
+        // Se date for uma string, tentar converter para Date
+        if (typeof date === 'string') {
+            // Primeiro tentar converter DD/MM/YYYY
+            const dateParts = date.split('/');
+            if (dateParts.length === 3) {
+                const [day, month, year] = dateParts;
+                date = new Date(year, month - 1, day);
+            }
         }
         
         // Verifica se é uma data válida
