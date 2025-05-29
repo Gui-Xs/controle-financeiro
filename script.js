@@ -753,37 +753,23 @@ async function updateTotals() {
             saldo: formatCurrency(saldo)
         });
 
-        const totalReceitasElement = document.getElementById('totalReceitas');
-        const totalDespesasElement = document.getElementById('totalDespesas');
-        const totalCartaoElement = document.getElementById('totalCartao');
-        const saldoTotalElement = document.getElementById('saldoTotal');
-
-        if (totalReceitasElement) {
-            totalReceitasElement.textContent = formatCurrency(totalReceitas);
-        } else {
-            console.error('Elemento totalReceitas não encontrado');
-        }
-
-        if (totalDespesasElement) {
-            totalDespesasElement.textContent = formatCurrency(totalDespesas);
-        } else {
-            console.error('Elemento totalDespesas não encontrado');
-        }
-
-        if (totalCartaoElement) {
-            totalCartaoElement.textContent = formatCurrency(totalCartao);
-        } else {
-            console.error('Elemento totalCartao não encontrado');
-        }
+        // Atualizar totais
+        document.getElementById('totalReceitas').textContent = formatCurrency(totalReceitas);
+        document.getElementById('totalDespesas').textContent = formatCurrency(totalDespesas);
+        document.getElementById('totalCartao').textContent = formatCurrency(totalCartao);
+        document.getElementById('saldoTotal').textContent = formatCurrency(saldo);
 
         if (saldoTotalElement) {
             saldoTotalElement.textContent = formatCurrency(saldo);
         } else {
-            console.error('Elemento saldoTotal não encontrado');
+            console.error('Elemento totalReceitas, totalDespesas, totalCartao ou saldoTotal não encontrado');
         }
 
         // Atualizar gráfico
         updateChart(categoryTotals);
+        
+        // Log de sucesso
+        console.log('Totais atualizados com sucesso');
     } catch (error) {
         console.error('Erro ao atualizar totais:', error);
         alert('Erro ao atualizar totais. Por favor, tente novamente.');
