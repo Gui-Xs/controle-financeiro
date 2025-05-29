@@ -128,11 +128,19 @@ async function initializeDatabase() {
         db.version(2).stores({
             transactions: '++id, date, description, amount, type, category, paymentMethod, installments, isRecurring, frequency, endDate'
         });
-        
+
         // Garantir que o banco seja inicializado
         await db.open();
         console.log('Banco de dados inicializado com sucesso');
         
+        // Verificar se há transações no banco
+        const testTransaction = await db.transactions.first();
+        if (testTransaction) {
+            console.log('Transações encontradas no banco:', testTransaction);
+        } else {
+            console.log('Nenhuma transação encontrada no banco');
+        }
+
         // Exportar o banco de dados para uso global
         window.db = db;
         return db;
@@ -477,14 +485,18 @@ async function addTransaction(e) {
 
         // Garantir que a data esteja sempre no formato YYYY-MM-DD
         if (typeof date === 'string') {
-            // Remover qualquer caractere inválido
+            // Remover qualquer caractere inválido (exceto números e hífen)
             date = date.replace(/[^\d-]/g, '');
-            // Se ainda tiver mais de 10 caracteres, pegar os últimos 10
+            // Se tiver mais de 10 caracteres, pegar os últimos 10
             if (date.length > 10) {
                 date = date.slice(-10);
             }
             // Se tiver menos de 10 caracteres, usar data atual
             if (date.length !== 10) {
+                date = new Date().toISOString().split('T')[0];
+            }
+            // Se ainda tiver caracteres inválidos, usar data atual
+            if (!date.match(/^\d{4}-\d{2}-\d{2}$/)) {
                 date = new Date().toISOString().split('T')[0];
             }
         }
@@ -501,7 +513,9 @@ async function addTransaction(e) {
         };
 
         // Adicionar a transação
-        await db.transactions.add(transaction);
+        console.log('Adicionando transação:', transaction);
+        const result = await db.transactions.add(transaction);
+        console.log('Transação adicionada com sucesso:', result);
         
         // Atualizar a tabela
         await updateTransactionsTable();
@@ -845,6 +859,7 @@ function updateChart(categoryTotals) {
 // Adicionar eventos quando a página carregar
 document.addEventListener('DOMContentLoaded', async () => {
     try {
+        console.log('Iniciando carregamento da página...');
         await initializeDatabase();
         
         // Adicionar evento ao formulário de transação
