@@ -33,30 +33,55 @@ async function initializeDatabase() {
     }
 }
 
-// Função para exportar JSON
-async function exportJSON() {
+// Função para exportar PDF
+async function exportToPDF() {
     try {
         if (!db) {
             await initializeDatabase();
         }
 
         const transactions = await db.transactions.toArray();
-        const jsonString = JSON.stringify(transactions, null, 2);
+        const doc = new jsPDF();
         
-        const blob = new Blob([jsonString], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'transacoes.json';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        // Título
+        doc.setFontSize(20);
+        doc.text('Relatório de Transações', 105, 20, { align: 'center' });
         
-        alert('Arquivo JSON exportado com sucesso!');
+        // Data
+        doc.setFontSize(12);
+        doc.text(`Gerado em: ${formatDate(new Date())}`, 105, 30, { align: 'center' });
+        
+        // Cabeçalho da tabela
+        doc.setFontSize(12);
+        const headers = ['Data', 'Descrição', 'Categoria', 'Valor', 'Tipo'];
+        const startY = 40;
+        let y = startY;
+        
+        // Adicionar cabeçalho
+        headers.forEach((header, i) => {
+            doc.text(header, 15 + (i * 50), y);
+        });
+        y += 10;
+        
+        // Adicionar linhas
+        transactions.forEach((transaction, index) => {
+            const date = formatDate(new Date(transaction.date));
+            const amount = formatCurrency(transaction.amount);
+            const type = transaction.type === 'receita' ? 'Receita' : 'Despesa';
+            
+            const row = [date, transaction.description, transaction.category, amount, type];
+            
+            row.forEach((cell, i) => {
+                doc.text(cell, 15 + (i * 50), y + (index * 10));
+            });
+        });
+        
+        // Salvar PDF
+        doc.save('relatorio-transacoes.pdf');
+        alert('PDF gerado com sucesso!');
     } catch (error) {
-        console.error('Erro ao exportar JSON:', error);
-        alert('Erro ao exportar JSON. Por favor, tente novamente.');
+        console.error('Erro ao exportar PDF:', error);
+        alert('Erro ao gerar PDF. Por favor, tente novamente.');
     }
 }
 
@@ -82,7 +107,7 @@ async function importJSON(event) {
                 }
                 
                 // Atualizar tabela
-                updateTransactionsTable();
+                await updateTransactionsTable();
                 
                 alert('Transações importadas com sucesso!');
             } catch (error) {
@@ -106,6 +131,7 @@ async function importReceipt(event) {
         const reader = new FileReader();
         reader.onload = async (e) => {
             try {
+                // Processar imagem com Tesseract
                 const text = await Tesseract.recognize(
                     e.target.result,
                     'por',
@@ -127,7 +153,7 @@ async function importReceipt(event) {
                 }
                 
                 // Atualizar tabela
-                updateTransactionsTable();
+                await updateTransactionsTable();
                 
                 alert('Transações importadas com sucesso!');
             } catch (error) {
@@ -246,18 +272,18 @@ async function addTransaction(e) {
 
 // Adicionando eventos de clique para os botões
 document.addEventListener('DOMContentLoaded', () => {
-    // Exportar JSON
-    document.getElementById('exportData')?.addEventListener('click', exportJSON);
-    
     // Exportar PDF
-    document.getElementById('exportPDF')?.addEventListener('click', exportToPDF);
+    const exportPDFBtn = document.getElementById('exportPDF');
+    if (exportPDFBtn) {
+        exportPDFBtn.addEventListener('click', exportToPDF);
+    }
     
     // Importar JSON
     const importDataBtn = document.getElementById('importData');
     const fileInput = document.getElementById('fileInput');
     if (importDataBtn && fileInput) {
         importDataBtn.addEventListener('click', () => fileInput.click());
-        fileInput.addEventListener('change', importJSON);
+        fileInput.addEventListener('change', (e) => importJSON(e));
     }
     
     // Importar Comprovante
@@ -265,7 +291,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const receiptInput = document.getElementById('receiptInput');
     if (importReceiptBtn && receiptInput) {
         importReceiptBtn.addEventListener('click', () => receiptInput.click());
-        receiptInput.addEventListener('change', importReceipt);
+        receiptInput.addEventListener('change', (e) => importReceipt(e));
     }
 });
 
