@@ -611,6 +611,7 @@ async function updateTotals() {
         let totalReceitas = 0;
         let totalDespesas = 0;
         let totalCartao = 0;
+        const categoryTotals = {};
 
         transactions.forEach(transaction => {
             if (transaction.type === 'receita') {
@@ -619,6 +620,13 @@ async function updateTotals() {
                 totalDespesas += transaction.amount;
                 if (transaction.paymentMethod === 'cartao_credito') {
                     totalCartao += transaction.amount;
+                }
+                
+                // Soma por categoria
+                if (categoryTotals[transaction.category]) {
+                    categoryTotals[transaction.category] += transaction.amount;
+                } else {
+                    categoryTotals[transaction.category] = transaction.amount;
                 }
             }
         });
@@ -659,11 +667,81 @@ async function updateTotals() {
         } else {
             console.error('Elemento saldoTotal não encontrado');
         }
+
+        // Atualizar gráfico
+        updateChart(categoryTotals);
     } catch (error) {
         console.error('Erro ao atualizar totais:', error);
         alert('Erro ao atualizar totais. Por favor, tente novamente.');
-        console.error('Erro ao atualizar saldo:', error);
     }
+}
+
+// Função para atualizar o gráfico
+function updateChart(categoryTotals) {
+    const chartCanvas = document.getElementById('chartCanvas');
+    if (!chartCanvas) return;
+
+    // Limpar gráfico existente
+    if (window.chart) {
+        window.chart.destroy();
+    }
+
+    // Preparar dados para o gráfico
+    const labels = Object.keys(categoryTotals);
+    const data = Object.values(categoryTotals);
+    const backgroundColors = labels.map(() => {
+        return `hsl(${Math.random() * 360}, 70%, 50%)`;
+    });
+
+    // Configuração do gráfico
+    const config = {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: backgroundColors,
+                hoverOffset: 4,
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        color: 'white',
+                        font: {
+                            size: 14
+                        }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => {
+                            const label = context.label || '';
+                            const value = formatCurrency(context.parsed);
+                            return `${label}: ${value}`;
+                        }
+                    },
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleColor: 'white',
+                    bodyColor: 'white',
+                    borderColor: 'white',
+                    borderWidth: 1
+                }
+            },
+            animation: {
+                duration: 1000,
+                easing: 'easeInOutQuart'
+            }
+        }
+    };
+
+    // Criar novo gráfico
+    window.chart = new Chart(chartCanvas, config);
 }
 
 // Adicionar eventos quando a página carregar
