@@ -415,17 +415,12 @@ function parseReceiptContent(text) {
 
 // Função para adicionar transação
 async function addTransaction(e) {
+    e.preventDefault();
     
+    // Verificar se o usuário está logado
     if (!user) {
         console.error('Usuário não está logado');
         alert('Por favor, faça login primeiro.');
-        return;
-    }
-
-    const form = document.getElementById('transactionForm');
-    if (!form) {
-        console.error('Formulário não encontrado');
-        alert('Erro: Formulário não encontrado');
         return;
     }
 
@@ -439,71 +434,44 @@ async function addTransaction(e) {
     const isRecurring = document.getElementById('isRecurring').checked;
     const frequency = document.getElementById('frequency').value;
     const endDate = document.getElementById('endDate').value;
-    
-    // Processar a data corretamente
     const dateInput = document.getElementById('date').value;
-    
-    // Verificar se a data está no formato correto
-    const dateRegex = /^\d{2}[/]\d{2}[/]\d{4}$/;
-    if (!dateRegex.test(dateInput)) {
-        alert('Formato de data inválido. Use DD/MM/AAAA');
-        return;
-    }
 
-    // Separar os componentes da data
-    const [day, month, year] = dateInput.split('/');
-    
-    // Criar uma string ISO com a data à meia-noite
-    const dateISO = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T00:00:00.000Z`;
-    const date = new Date(dateISO);
-    
-    // Verificar se a data é válida
-    if (isNaN(date.getTime())) {
-        alert('Data inválida. Por favor, verifique o formato e os valores.');
-        return;
-    }
-    
-    console.log('Dados do formulário:', {
-        description,
-        amount,
-        type,
-        category,
-        paymentMethod,
-        installments,
-        isRecurring,
-        frequency,
-        endDate,
-        date: date.getTime()
-    });
-
-    if (!description || isNaN(amount)) {
+    // Verificar se todos os campos obrigatórios estão preenchidos
+    if (!description || isNaN(amount) || !dateInput) {
         alert('Por favor, preencha todos os campos obrigatórios.');
         return;
     }
 
-    const transaction = {
-        description,
-        amount,
-        type,
-        category,
-        paymentMethod,
-        date: date.getTime(),
-        installments,
-        isRecurring,
-        frequency,
-        endDate
-    };
-
     try {
+        // Inicializar o banco de dados se necessário
         if (!db) {
             await initializeDatabase();
         }
 
+        // Criar a transação
+        const transaction = {
+            description,
+            amount,
+            type,
+            category,
+            paymentMethod,
+            date: dateInput, // Salvar como string
+            installments,
+            isRecurring,
+            frequency,
+            endDate
+        };
+
+        // Adicionar a transação
         await db.transactions.add(transaction);
+        
+        // Atualizar a tabela
         await updateTransactionsTable();
         
-        form.reset();
+        // Limpar o formulário
+        document.getElementById('transactionForm').reset();
         
+        // Mostrar mensagem de sucesso
         alert('Transação adicionada com sucesso!');
     } catch (error) {
         console.error('Erro ao adicionar transação:', error);
