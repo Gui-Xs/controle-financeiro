@@ -233,6 +233,96 @@ async function importReceipt(event) {
         const file = event.target.files[0];
         if (!file) return;
         
+        console.log('Iniciando importação de comprovante...');
+        
+        // Verificar se o Tesseract está disponível
+        if (!window.Tesseract) {
+            throw new Error('Tesseract não está disponível. Por favor, recarregue a página.');
+        }
+        
+        // Criar um elemento de imagem temporário
+        const img = new Image();
+        img.src = URL.createObjectURL(file);
+        
+        // Carregar a imagem
+        await new Promise((resolve) => {
+            img.onload = resolve;
+        });
+        
+        console.log('Iniciando OCR...');
+        
+        // Processar a imagem com Tesseract
+        const result = await Tesseract.recognize(
+            img,
+            'por',
+            {
+                logger: (m) => console.log(m),
+                lang: 'por',
+                tessedit_pageseg_mode: '6', // PSM 6 - Assume a single uniform block of text
+                tessedit_char_whitelist: '0123456789.,-abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ ',
+            }
+        );
+        
+        console.log('Texto extraído:', result.data.text);
+        
+        // Processar o texto extraído
+        const text = result.data.text.toLowerCase();
+        const lines = text.split('\n');
+        
+        const transactionData = {
+            description: '',
+            amount: 0,
+            date: new Date(),
+            type: 'despesa',
+            category: 'outros'
+        };
+        
+        // Tentar encontrar a data
+        const dateRegex = /\d{2}[/\-]\d{2}[/\-]\d{2,4}/;
+        const dateMatch = lines.find(line => dateRegex.test(line));
+        if (dateMatch) {
+            const dateStr = dateMatch.match(dateRegex)[0];
+            transactionData.date = new Date(dateStr.replace(/\D/g, '/'));
+        }
+        
+        // Tentar encontrar o nome do estabelecimento
+        const establishmentRegex = /[a-záàâãéèêíìóòôõúùç\s]+/;
+        const establishmentMatch = lines.find(line => line.length > 5 && !line.match(/\d/));
+        if (establishmentMatch) {
+            transactionData.description = establishmentMatch.trim();
+        }
+        
+        // Tentar encontrar o valor
+        const amountRegex = /\d+[.,]\d{2}/g;
+        const amountMatch = lines.find(line => amountRegex.test(line));
+        if (amountMatch) {
+            const amountStr = amountMatch.match(amountRegex)[0].replace(',', '.');
+            transactionData.amount = parseFloat(amountStr);
+        }
+        
+        console.log('Dados extraídos:', transactionData);
+        
+        // Adicionar a transação
+        if (!db) {
+            await initializeDatabase();
+        }
+        
+        await db.transactions.add(transactionData);
+        await updateTransactionsTable();
+        
+        alert('Comprovante importado com sucesso!');
+    } catch (error) {
+        console.error('Erro ao importar comprovante:', error);
+        alert('Erro ao importar comprovante. Por favor, tente novamente.');
+    }
+}
+
+// Função para importar comprovante
+async function importReceipt(event) {
+    try {
+        const file = event.target.files[0];
+        if (!file) return;
+        
         const reader = new FileReader();
         reader.onload = async (e) => {
             try {
