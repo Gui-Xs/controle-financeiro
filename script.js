@@ -6,6 +6,28 @@ function formatCurrency(value) {
     }).format(value);
 }
 
+// Mapeamento de categorias para ícones
+const categoryIcons = {
+    'alimentacao': 'utensils',
+    'transporte': 'car',
+    'moradia': 'home',
+    'saude': 'heart',
+    'educacao': 'graduation-cap',
+    'lazer': 'gamepad',
+    'vestuario': 'tshirt',
+    'tecnologia': 'laptop',
+    'servicos': 'tools',
+    'investimentos': 'chart-line',
+    'viagem': 'plane',
+    'presente': 'gift',
+    'outros': 'question-circle'
+};
+
+// Função para obter o ícone da categoria
+function getCategoryIcon(category) {
+    return categoryIcons[category] || categoryIcons['outros'];
+}
+
 function formatDate(date) {
     try {
         // Se date for um número (timestamp), converte para Date
@@ -452,10 +474,14 @@ async function updateTransactionsTable() {
                 const amount = formatCurrency(transaction.amount);
                 const type = transaction.type === 'receita' ? 'Receita' : 'Despesa';
                 
+                const categoryIcon = getCategoryIcon(transaction.category);
                 li.innerHTML = `
                     <div class="transaction-info">
                         <span class="date">${date}</span>
                         <span class="description">${transaction.description}</span>
+                        <span class="category-icon">
+                            <i class="fas fa-${categoryIcon}"></i>
+                        </span>
                         <span class="category">${transaction.category}</span>
                         <span class="amount ${transaction.type}">${amount}</span>
                         <span class="type">${type}</span>

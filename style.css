@@ -203,6 +203,106 @@ body {
     margin-bottom: 24px;
 }
 
+.transactions-list {
+    list-style: none;
+    padding: 0;
+}
+
+.transaction-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    background-color: var(--secondary-color);
+    border-radius: 8px;
+    margin-bottom: 12px;
+    box-shadow: var(--card-shadow);
+    transition: transform 0.2s;
+}
+
+.transaction-item:hover {
+    transform: translateY(-2px);
+}
+
+.transaction-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex: 1;
+}
+
+.transaction-info span {
+    color: var(--text-color);
+}
+
+.transaction-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.transaction-actions button {
+    background: none;
+    border: none;
+    color: var(--text-color);
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.transaction-actions button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.edit-btn {
+    color: var(--accent-color);
+}
+
+.delete-btn {
+    color: var(--danger-color);
+}
+
+.amount {
+    font-weight: 600;
+}
+
+.amount.receita {
+    color: var(--success-color);
+}
+
+.amount.despesa {
+    color: var(--danger-color);
+}
+
+.type {
+    text-transform: capitalize;
+    font-size: 0.9rem;
+    color: var(--text-color);
+    opacity: 0.8;
+}
+
+.empty {
+    text-align: center;
+    color: var(--text-color);
+    opacity: 0.6;
+    padding: 16px;
+}
+
+.category-icon {
+    margin-right: 8px;
+    font-size: 1.2rem;
+    color: var(--accent-color);
+}
+
+.category-icon i {
+    width: 20px;
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+
 .data-actions {
     display: flex;
     gap: 12px;
