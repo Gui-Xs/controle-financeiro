@@ -417,64 +417,80 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Função para atualizar a tabela de transações
 async function updateTransactionsTable() {
+    console.log('Atualizando tabela de transações...');
+    
     try {
         if (!db) {
+            console.log('Inicializando banco de dados...');
             await initializeDatabase();
         }
 
+        console.log('Buscando transações...');
         const transactions = await db.transactions.toArray();
-        const tableBody = document.getElementById('transactionsBody');
-        if (!tableBody) return;
+        console.log('Transações encontradas:', transactions);
+        
+        const transactionsList = document.getElementById('transactionsList');
+        if (!transactionsList) {
+            console.error('Elemento transactionsList não encontrado');
+            return;
+        }
 
-        // Limpar tabela
-        tableBody.innerHTML = '';
-
-        // Ordenar transações por data (mais recentes primeiro)
-        transactions.sort((a, b) => {
-            const dateA = new Date(a.date);
-            const dateB = new Date(b.date);
-            return dateB.getTime() - dateA.getTime();
-        });
-
-        // Adicionar linhas
-        transactions.forEach(transaction => {
-            try {
-                const row = document.createElement('tr');
-                const date = formatDate(transaction.date);
-                row.innerHTML = `
-                    <td>${date}</td>
-                    <td>${transaction.description || ''}</td>
-                    <td>${transaction.category || ''}</td>
-                    <td class="amount ${transaction.type || 'despesa'}">
-                        ${transaction.amount ? formatCurrency(transaction.amount) : ''}
-                    </td>
-                    <td>${transaction.type === 'receita' ? 'Receita' : 'Despesa'}</td>
-                    <td>
-                        <button class="action-btn edit-btn" onclick="editTransaction(${transaction.id})">
+        console.log('Limpando tabela...');
+        transactionsList.innerHTML = '';
+        
+        console.log('Criando itens da tabela...');
+        if (transactions.length > 0) {
+            console.log(`Encontradas ${transactions.length} transações para mostrar`);
+            
+            transactions.forEach(transaction => {
+                console.log('Criando item para transação:', transaction);
+                
+                const li = document.createElement('li');
+                li.className = 'transaction-item';
+                
+                const date = formatDate(new Date(transaction.date));
+                const amount = formatCurrency(transaction.amount);
+                const type = transaction.type === 'receita' ? 'Receita' : 'Despesa';
+                
+                li.innerHTML = `
+                    <div class="transaction-info">
+                        <span class="date">${date}</span>
+                        <span class="description">${transaction.description}</span>
+                        <span class="category">${transaction.category}</span>
+                        <span class="amount ${transaction.type}">${amount}</span>
+                        <span class="type">${type}</span>
+                    </div>
+                    <div class="transaction-actions">
+                        <button class="edit-btn" onclick="editTransaction(${transaction.id})">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="action-btn delete-btn" onclick="deleteTransaction(${transaction.id})">
+                        <button class="delete-btn" onclick="deleteTransaction(${transaction.id})">
                             <i class="fas fa-trash"></i>
                         </button>
-                    </td>
+                    </div>
                 `;
-                tableBody.appendChild(row);
-            } catch (error) {
-                console.error('Erro ao criar linha da tabela:', error);
-            }
-        });
+                
+                console.log('Adicionando item à tabela...');
+                transactionsList.appendChild(li);
+            });
+        } else {
+            console.log('Nenhuma transação encontrada');
+            const li = document.createElement('li');
+            li.className = 'transaction-item empty';
+            li.textContent = 'Nenhuma transação encontrada';
+            transactionsList.appendChild(li);
+        }
 
-        // Atualizar gráficos
-        updateCharts();
-
-        // Atualizar saldo
-        updateBalance();
+        console.log('Atualizando totais...');
+        updateTotals();
+        
+        console.log('Tabela atualizada com sucesso!');
     } catch (error) {
         console.error('Erro ao atualizar tabela:', error);
+        alert('Erro ao atualizar tabela. Por favor, tente novamente.');
     }
 }
 
-// Restante do código...
 // Função para deletar transação
 async function deleteTransaction(id) {
     if (confirm('Tem certeza que deseja deletar esta transação?')) {
