@@ -58,10 +58,19 @@ if (form) {
 }
 
 // Função para inicializar o banco de dados
+let db = null;
+
 async function initializeDatabase() {
     try {
+        if (db) {
+            console.log('Banco de dados já inicializado');
+            return db;
+        }
+
+        console.log('Iniciando inicialização do banco de dados...');
+        
         // Inicializar Dexie
-        const db = new Dexie('controleFinanceiro');
+        db = new Dexie('controleFinanceiro');
         
         // Definir a versão mais recente do banco
         db.version(2).stores({
@@ -74,6 +83,7 @@ async function initializeDatabase() {
         
         // Exportar o banco de dados para uso global
         window.db = db;
+        return db;
     } catch (error) {
         console.error('Erro ao inicializar banco de dados:', error);
         throw error;
@@ -297,7 +307,8 @@ async function addTransaction(e) {
     console.log('Iniciando adição de transação...');
     
     // Verificar se o usuário está logado
-    if (!document.getElementById('mainContent').style.display === 'block') {
+    const mainContent = document.getElementById('mainContent');
+    if (!mainContent || mainContent.style.display !== 'block') {
         console.error('Usuário não está logado');
         alert('Por favor, faça login primeiro.');
         return;
