@@ -36,6 +36,11 @@ async function initializeDatabase() {
 // Função para exportar PDF
 async function exportToPDF() {
     try {
+        // Verificar se o jsPDF está disponível
+        if (typeof jsPDF === 'undefined') {
+            throw new Error('jsPDF não está disponível. Por favor, recarregue a página.');
+        }
+
         if (!db) {
             await initializeDatabase();
         }
@@ -47,6 +52,7 @@ async function exportToPDF() {
         }
 
         // Criar PDF
+        const { jsPDF } = window.jspdf;
         const doc = new jsPDF('p', 'mm', 'a4');
         
         // Configurar fontes
