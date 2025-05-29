@@ -27,6 +27,36 @@ function formatDate(date) {
     }
 }
 
+// Adicionar evento de submit do formulário
+const form = document.getElementById('transactionForm');
+if (form) {
+    form.addEventListener('submit', addTransaction);
+    console.log('Evento de submit adicionado ao formulário');
+} else {
+    console.log('Formulário não encontrado inicialmente');
+    
+    // Tentar adicionar o evento novamente quando o conteúdo principal for mostrado
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach(mutation => {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                const mainContent = document.getElementById('mainContent');
+                if (mainContent.style.display === 'block') {
+                    const form = document.getElementById('transactionForm');
+                    if (form) {
+                        form.addEventListener('submit', addTransaction);
+                        console.log('Evento de submit adicionado após mostrar conteúdo principal');
+                        observer.disconnect(); // Parar de observar após adicionar o evento
+                    }
+                }
+            }
+        });
+    });
+    
+    observer.observe(document.getElementById('mainContent'), {
+        attributes: true
+    });
+}
+
 // Função para inicializar o banco de dados
 async function initializeDatabase() {
     try {
