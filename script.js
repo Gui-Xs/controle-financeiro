@@ -266,6 +266,13 @@ async function addTransaction(e) {
     e.preventDefault();
     console.log('Iniciando adição de transação...');
     
+    // Verificar se o usuário está logado
+    if (!document.getElementById('mainContent').style.display === 'block') {
+        console.error('Usuário não está logado');
+        alert('Por favor, faça login primeiro.');
+        return;
+    }
+
     const form = document.getElementById('transactionForm');
     if (!form) {
         console.error('Formulário não encontrado');
