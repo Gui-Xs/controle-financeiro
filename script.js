@@ -47,34 +47,34 @@ function getCategoryIcon(category) {
 // Função para formatar data
 function formatDate(date) {
     try {
-        // Primeiro tentar converter para Date
-        let d;
-        if (typeof date === 'number') {
-            d = new Date(date);
-        } else if (typeof date === 'string') {
-            // Se for string, tentar converter
-            d = new Date(date);
-            // Se não der certo, tentar converter DD/MM/YYYY
-            if (isNaN(d.getTime())) {
-                const dateParts = date.split('/');
-                if (dateParts.length === 3) {
-                    const [day, month, year] = dateParts;
-                    d = new Date(year, month - 1, day);
-                }
-            }
+        // Se date for uma string no formato YYYY-MM-DD
+        if (typeof date === 'string' && date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            const [year, month, day] = date.split('-');
+            return `${day}/${month}/${year}`;
         }
 
-        // Se for uma data válida, formatar
-        if (d instanceof Date && !isNaN(d.getTime())) {
-            return new Intl.DateTimeFormat('pt-BR').format(d);
-        }
-
-        // Se não for uma data válida, mas for uma string, tentar extrair os números
+        // Se for uma string em outro formato, tentar converter
         if (typeof date === 'string') {
+            // Primeiro tentar extrair os números usando regex
             const match = date.match(/\d+/g);
             if (match && match.length >= 3) {
-                const [year, month, day] = match;
-                return `${day}/${month}/${year}`;
+                // Ordenar os números do menor para o maior
+                const sortedNumbers = match.map(Number).sort((a, b) => a - b);
+                
+                // Se temos 3 números, assumir que são dia, mês e ano
+                if (sortedNumbers.length === 3) {
+                    const [day, month, year] = sortedNumbers;
+                    // Verificar se o dia e mês estão dentro dos limites
+                    if (day >= 1 && day <= 31 && month >= 1 && month <= 12) {
+                        return `${day.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${year}`;
+                    }
+                }
+            }
+
+            // Se ainda não deu certo, tentar converter usando Date
+            const d = new Date(date);
+            if (d instanceof Date && !isNaN(d.getTime())) {
+                return new Intl.DateTimeFormat('pt-BR').format(d);
             }
         }
 
