@@ -579,7 +579,13 @@ async function updateTransactionsTable() {
             const li = document.createElement('li');
             li.className = 'transaction-item';
             
-            const date = formatDate(new Date(transaction.date));
+            // Primeiro tentar usar a data como string
+            let date = transaction.date;
+            // Se não for uma string válida, tentar converter
+            if (!date || !date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                date = formatDate(new Date(transaction.date));
+            }
+            
             const amount = formatCurrency(transaction.amount);
             const type = transaction.type === 'receita' ? 'Receita' : 'Despesa';
             
