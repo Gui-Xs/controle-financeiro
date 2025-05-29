@@ -442,11 +442,26 @@ async function addTransaction(e) {
     
     // Processar a data corretamente
     const dateInput = document.getElementById('date').value;
+    
+    // Verificar se a data está no formato correto
+    const dateRegex = /^\d{2}[/]\d{2}[/]\d{4}$/;
+    if (!dateRegex.test(dateInput)) {
+        alert('Formato de data inválido. Use DD/MM/AAAA');
+        return;
+    }
+
+    // Separar os componentes da data
     const [day, month, year] = dateInput.split('/');
     
     // Criar uma string ISO com a data à meia-noite
     const dateISO = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T00:00:00.000Z`;
     const date = new Date(dateISO);
+    
+    // Verificar se a data é válida
+    if (isNaN(date.getTime())) {
+        alert('Data inválida. Por favor, verifique o formato e os valores.');
+        return;
+    }
     
     console.log('Dados do formulário:', {
         description,
