@@ -543,54 +543,37 @@ async function updateTransactionsTable() {
 
         console.log('Limpando tabela...');
         transactionsList.innerHTML = '';
-        
-        console.log('Criando itens da tabela...');
-        if (transactions.length > 0) {
-            console.log(`Encontradas ${transactions.length} transações para mostrar`);
-            
-            transactions.forEach(transaction => {
-                console.log('Criando item para transação:', transaction);
-                
-                const li = document.createElement('li');
-                li.className = 'transaction-item';
-                
-                const date = formatDate(new Date(transaction.date));
-                const amount = formatCurrency(transaction.amount);
-                const type = transaction.type === 'receita' ? 'Receita' : 'Despesa';
-                
-                const categoryIcon = getCategoryIcon(transaction.category);
-                li.innerHTML = `
-                    <div class="transaction-info">
-                        <span class="date">${date}</span>
-                        <span class="description">${transaction.description}</span>
-                        <span class="category-icon">
-                            <i class="fas fa-${categoryIcon}"></i>
-                        </span>
-                        <span class="category">${transaction.category}</span>
-                    </div>
-                    <div class="transaction-actions">
-                        <span class="amount ${transaction.type}">${amount}</span>
-                        <button class="edit-btn" onclick="editTransaction(${transaction.id})">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="delete-btn" onclick="deleteTransaction(${transaction.id})">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                `;
-                
-                console.log('Adicionando item à tabela...');
-                transactionsList.appendChild(li);
-            });
-        } else {
-            console.log('Nenhuma transação encontrada');
-            const li = document.createElement('li');
-            li.className = 'transaction-item empty';
-            li.textContent = 'Nenhuma transação encontrada';
-            transactionsList.appendChild(li);
-        }
 
-        console.log('Atualizando totais...');
+        // Filtrar transações por categoria
+        const filteredTransactions = categoryFilter === 'todas' 
+            ? transactions 
+            : transactions.filter(t => t.category === categoryFilter);
+
+        // Ordenar transações por data (mais recentes primeiro)
+        filteredTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        // Adicionar cada transação à tabela
+        filteredTransactions.forEach(transaction => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td class="icon-cell"><i class="fas fa-${getCategoryIcon(transaction.category)}"></i></td>
+                <td>${formatDate(new Date(transaction.date))}</td>
+                <td>${transaction.description}</td>
+                <td>${formatCurrency(transaction.amount)}</td>
+                <td>${transaction.type === 'receita' ? '<i class="fas fa-arrow-up text-success"></i>' : '<i class="fas fa-arrow-down text-danger"></i>'}</td>
+                <td>
+                    <button onclick="editTransaction('${transaction.id}')" class="action-btn">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button onclick="deleteTransaction('${transaction.id}')" class="action-btn">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            `;
+            tableBody.appendChild(row);
+        });
+
+        // Atualizar totais
         updateTotals();
         
         console.log('Tabela atualizada com sucesso!');
