@@ -569,11 +569,13 @@ async function updateTransactionsTable() {
             const li = document.createElement('li');
             li.className = 'transaction-item';
             
-            // Usar a data diretamente
-            const date = transaction.date || '';
+            // Garantir que a data seja uma string antes de usar match
+            const dateStr = String(transaction.date || '');
             // Se não for uma string válida no formato YYYY-MM-DD, tentar formatar
-            if (!date.match(/^\d{4}-\d{2}-\d{2}$/)) {
-                date = formatDate(date);
+            if (!dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                date = formatDate(dateStr);
+            } else {
+                date = dateStr;
             }
             
             const amount = formatCurrency(transaction.amount);
