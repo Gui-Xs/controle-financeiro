@@ -57,6 +57,13 @@ function updateUI(user) {
         console.log('Usuário autorizado:', user.uid);
         mainContent.style.display = 'block';
         logoutBtn.style.display = 'block';
+        
+        // Adicionar evento de submit do formulário após o login bem-sucedido
+        const form = document.getElementById('transactionForm');
+        if (form) {
+            form.addEventListener('submit', addTransaction);
+            console.log('Evento de submit adicionado ao formulário após login');
+        }
     } else {
         console.log('Usuário não autorizado ou não logado');
         loginScreen.style.display = 'block';
