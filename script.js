@@ -46,9 +46,20 @@ function getCategoryIcon(category) {
 
 function formatDate(date) {
     try {
+        // Se date for uma string no formato YYYY-MM-DD
+        if (typeof date === 'string' && date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            const [year, month, day] = date.split('-');
+            return `${day}/${month}/${year}`;
+        }
+        
         // Se date for um número (timestamp), converte para Date
         if (typeof date === 'number') {
             date = new Date(date);
+        }
+        
+        // Se date for uma string no formato DD/MM/YYYY
+        if (typeof date === 'string' && date.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+            return date;
         }
         
         // Verifica se é uma data válida
@@ -472,12 +483,15 @@ async function addTransaction(e) {
             type,
             category,
             paymentMethod,
-            date: dateInput, // Salvar como string
             installments,
             isRecurring,
             frequency,
             endDate
         };
+
+        // Processar a data corretamente
+        const [day, month, year] = dateInput.split('/');
+        transaction.date = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
 
         // Adicionar a transação
         await db.transactions.add(transaction);
