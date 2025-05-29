@@ -44,6 +44,7 @@ function getCategoryIcon(category) {
     return categoryIcons[category] || categoryIcons['outros'];
 }
 
+// Função para formatar data
 function formatDate(date) {
     try {
         // Se date for uma string no formato YYYY-MM-DD
@@ -57,30 +58,18 @@ function formatDate(date) {
             return date;
         }
         
-        // Se date for um número (timestamp), converte para Date
-        if (typeof date === 'number') {
+        // Se for um número (timestamp) ou uma string, tentar converter para Date
+        try {
             const d = new Date(date);
             if (d instanceof Date && !isNaN(d.getTime())) {
                 return new Intl.DateTimeFormat('pt-BR').format(d);
             }
+        } catch (e) {
+            console.log('Erro ao converter data:', e);
         }
         
-        // Se date for uma string, tentar converter para Date
-        if (typeof date === 'string') {
-            // Primeiro tentar converter DD/MM/YYYY
-            const dateParts = date.split('/');
-            if (dateParts.length === 3) {
-                const [day, month, year] = dateParts;
-                const d = new Date(year, month - 1, day);
-                if (d instanceof Date && !isNaN(d.getTime())) {
-                    return new Intl.DateTimeFormat('pt-BR').format(d);
-                }
-            }
-        }
-        
-        // Se não for uma data válida, retorna uma string vazia
-        console.warn('Data inválida encontrada:', date);
-        return '';
+        // Se não for uma data válida, retornar a string original
+        return date || '';
     } catch (error) {
         console.error('Erro ao formatar data:', error);
         return '';
@@ -580,11 +569,11 @@ async function updateTransactionsTable() {
             const li = document.createElement('li');
             li.className = 'transaction-item';
             
-            // Garantir que a data seja uma string
-            let date = String(transaction.date || '');
-            // Se não for uma string válida no formato YYYY-MM-DD, tentar converter
+            // Usar a data diretamente
+            const date = transaction.date || '';
+            // Se não for uma string válida no formato YYYY-MM-DD, tentar formatar
             if (!date.match(/^\d{4}-\d{2}-\d{2}$/)) {
-                date = formatDate(new Date(date));
+                date = formatDate(date);
             }
             
             const amount = formatCurrency(transaction.amount);
