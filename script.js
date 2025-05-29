@@ -415,12 +415,8 @@ function parseReceiptContent(text) {
 
 // Função para adicionar transação
 async function addTransaction(e) {
-    e.preventDefault();
-    console.log('Iniciando adição de transação...');
     
-    // Verificar se o usuário está logado
-    const mainContent = document.getElementById('mainContent');
-    if (!mainContent || mainContent.style.display !== 'block') {
+    if (!user) {
         console.error('Usuário não está logado');
         alert('Por favor, faça login primeiro.');
         return;
@@ -433,16 +429,21 @@ async function addTransaction(e) {
         return;
     }
 
-    const description = form.querySelector('#description')?.value;
-    const amount = parseFloat(form.querySelector('#amount')?.value);
-    const type = form.querySelector('#type')?.value;
-    const category = form.querySelector('#category')?.value;
-    const paymentMethod = form.querySelector('#paymentMethod')?.value;
-    const installments = parseInt(form.querySelector('#installments')?.value) || 1;
-    const isRecurring = form.querySelector('#isRecurring')?.checked || false;
-    const frequency = form.querySelector('#frequency')?.value;
-    const endDate = form.querySelector('#endDate')?.value;
-    const date = new Date(form.querySelector('#date')?.value || new Date());
+    // Obter os valores do formulário
+    const description = document.getElementById('description').value;
+    const amount = parseFloat(document.getElementById('amount').value);
+    const type = document.getElementById('type').value;
+    const category = document.getElementById('category').value;
+    const paymentMethod = document.getElementById('paymentMethod').value;
+    const installments = parseInt(document.getElementById('installments').value) || 1;
+    const isRecurring = document.getElementById('isRecurring').checked;
+    const frequency = document.getElementById('frequency').value;
+    const endDate = document.getElementById('endDate').value;
+    
+    // Processar a data corretamente
+    const dateInput = document.getElementById('date').value;
+    const [day, month, year] = dateInput.split('/');
+    const date = new Date(year, month - 1, day);
     
     console.log('Dados do formulário:', {
         description,
@@ -458,44 +459,34 @@ async function addTransaction(e) {
     });
 
     if (!description || isNaN(amount)) {
-        console.error('Campos obrigatórios não preenchidos');
-        alert('Por favor, preencha todos os campos corretamente');
+        alert('Por favor, preencha todos os campos obrigatórios.');
         return;
     }
-    
+
+    const transaction = {
+        description,
+        amount,
+        type,
+        category,
+        paymentMethod,
+        date: date.getTime(),
+        installments,
+        isRecurring,
+        frequency,
+        endDate
+    };
+
     try {
         if (!db) {
-            console.log('Inicializando banco de dados...');
             await initializeDatabase();
         }
 
-        console.log('Criando transação...');
-        const transaction = {
-            date: date.getTime(),
-            description,
-            amount,
-            type,
-            category,
-            paymentMethod,
-            installments,
-            isRecurring,
-            frequency,
-            endDate
-        };
-        
-        console.log('Transação a ser adicionada:', transaction);
-        
         await db.transactions.add(transaction);
-        console.log('Transação adicionada com sucesso!');
-        
-        // Atualizar a tabela
-        console.log('Atualizando tabela...');
         await updateTransactionsTable();
         
-        // Limpar o formulário
-        console.log('Limpando formulário...');
         form.reset();
         
+        alert('Transação adicionada com sucesso!');
     } catch (error) {
         console.error('Erro ao adicionar transação:', error);
         alert('Erro ao adicionar transação. Por favor, tente novamente.');
