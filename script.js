@@ -41,29 +41,41 @@ async function exportToPDF() {
         }
 
         const transactions = await db.transactions.toArray();
-        const doc = new jsPDF();
+        if (transactions.length === 0) {
+            alert('Não há transações para exportar!');
+            return;
+        }
+
+        // Criar PDF
+        const doc = new jsPDF('p', 'mm', 'a4');
         
+        // Configurar fontes
+        doc.setFont('helvetica');
+        doc.setFontSize(12);
+
         // Título
-        doc.setFontSize(20);
+        doc.setFontSize(18);
         doc.text('Relatório de Transações', 105, 20, { align: 'center' });
         
         // Data
-        doc.setFontSize(12);
+        doc.setFontSize(10);
         doc.text(`Gerado em: ${formatDate(new Date())}`, 105, 30, { align: 'center' });
         
         // Cabeçalho da tabela
-        doc.setFontSize(12);
         const headers = ['Data', 'Descrição', 'Categoria', 'Valor', 'Tipo'];
         const startY = 40;
         let y = startY;
         
         // Adicionar cabeçalho
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
         headers.forEach((header, i) => {
             doc.text(header, 15 + (i * 50), y);
         });
-        y += 10;
+        y += 15;
         
         // Adicionar linhas
+        doc.setFont('helvetica', 'normal');
         transactions.forEach((transaction, index) => {
             const date = formatDate(new Date(transaction.date));
             const amount = formatCurrency(transaction.amount);
@@ -75,6 +87,11 @@ async function exportToPDF() {
                 doc.text(cell, 15 + (i * 50), y + (index * 10));
             });
         });
+        
+        // Adicionar rodapé
+        y += 10;
+        doc.setFontSize(10);
+        doc.text('Gerado pelo Controle Financeiro', 105, y + 10, { align: 'center' });
         
         // Salvar PDF
         doc.save('relatorio-transacoes.pdf');
