@@ -47,12 +47,17 @@ function getCategoryIcon(category) {
 // Função para formatar data
 function formatDate(date) {
     try {
+        // Se for um número (timestamp), usar Intl para formatar
+        if (typeof date === 'number') {
+            return new Intl.DateTimeFormat('pt-BR').format(new Date(date));
+        }
+        
         // Se date for uma string no formato YYYY-MM-DD
         if (typeof date === 'string' && date.match(/^\d{4}-\d{2}-\d{2}$/)) {
             const [year, month, day] = date.split('-');
             return `${day}/${month}/${year}`;
         }
-
+        
         // Se for uma string em outro formato, tentar converter
         if (typeof date === 'string') {
             // Primeiro tentar extrair os números usando regex
@@ -571,7 +576,7 @@ async function updateTransactionsTable() {
             li.className = 'transaction-item';
             
             // Garantir que sempre tenha uma data e formate
-            const date = transaction.date || new Date().toISOString().split('T')[0];
+            const date = transaction.date || new Date().toISOString();
             const formattedDate = formatDate(date);
             
             const amount = formatCurrency(transaction.amount);
