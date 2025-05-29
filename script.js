@@ -37,9 +37,12 @@ async function initializeDatabase() {
 async function exportToPDF() {
     try {
         // Verificar se o jsPDF está disponível
-        if (typeof jsPDF === 'undefined') {
+        if (typeof window.jspdf === 'undefined') {
             throw new Error('jsPDF não está disponível. Por favor, recarregue a página.');
         }
+
+        // Aguardar a inicialização do jsPDF
+        await new Promise((resolve) => setTimeout(resolve, 100));
 
         if (!db) {
             await initializeDatabase();
