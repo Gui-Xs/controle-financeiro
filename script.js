@@ -454,49 +454,40 @@ function parseReceiptContent(text) {
 async function addTransaction(e) {
     e.preventDefault();
     
-    // Verificar se o usuário está logado
-    const user = firebase.auth().currentUser;
-    if (!user) {
-        console.error('Usuário não está logado');
-        alert('Por favor, faça login primeiro.');
-        return;
-    }
-
-    // Obter os valores do formulário
-    const description = document.getElementById('description').value;
-    const amount = parseFloat(document.getElementById('amount').value);
-    const type = document.getElementById('type').value;
-    const category = document.getElementById('category').value;
-    const paymentMethod = document.getElementById('paymentMethod').value;
-    const installments = parseInt(document.getElementById('installments').value) || 1;
-    const isRecurring = document.getElementById('isRecurring').checked;
-    const frequency = document.getElementById('frequency').value;
-    const endDate = document.getElementById('endDate').value;
-    const dateInput = document.getElementById('date').value;
-
-    // Verificar se todos os campos obrigatórios estão preenchidos
-    if (!description || isNaN(amount) || !dateInput) {
-        alert('Por favor, preencha todos os campos obrigatórios.');
-        return;
-    }
-
     try {
-        // Inicializar o banco de dados se necessário
-        if (!db) {
-            await initializeDatabase();
+        // Verificar se o usuário está logado
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            console.error('Usuário não está logado');
+            alert('Por favor, faça login primeiro.');
+            return;
         }
 
-        // Criar a transação
+        // Obter os valores do formulário
+        const description = document.getElementById('description').value;
+        const amount = parseFloat(document.getElementById('amount').value);
+        const dateInput = document.getElementById('date').value;
+        const category = document.getElementById('category').value;
+        const type = document.getElementById('type').value;
+        
+        // Validar campos obrigatórios
+        if (!description || !amount || !category || !type) {
+            alert('Por favor, preencha todos os campos obrigatórios.');
+            return;
+        }
+
+        // Se não houver data, usar a data atual
+        const date = dateInput || new Date().toISOString().split('T')[0];
+
+        // Processar a data
         const transaction = {
             description,
             amount,
-            type,
             category,
-            paymentMethod,
-            installments,
-            isRecurring,
-            frequency,
-            endDate
+            type,
+            date,
+            frequency: document.getElementById('frequency').value,
+            endDate: document.getElementById('endDate').value
         };
 
         // Processar a data corretamente
@@ -579,10 +570,9 @@ async function updateTransactionsTable() {
             const li = document.createElement('li');
             li.className = 'transaction-item';
             
-            // Garantir que a data seja uma string antes de usar
-            const dateStr = String(transaction.date || '');
-            // Se não for uma string válida no formato YYYY-MM-DD, tentar formatar
-            const date = formatDate(dateStr);
+            // Garantir que sempre tenha uma data e formate
+            const date = transaction.date || new Date().toISOString().split('T')[0];
+            const formattedDate = formatDate(date);
             
             const amount = formatCurrency(transaction.amount);
             const type = transaction.type === 'receita' ? 'Receita' : 'Despesa';
