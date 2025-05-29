@@ -418,6 +418,7 @@ async function addTransaction(e) {
     e.preventDefault();
     
     // Verificar se o usuário está logado
+    const user = firebase.auth().currentUser;
     if (!user) {
         console.error('Usuário não está logado');
         alert('Por favor, faça login primeiro.');
