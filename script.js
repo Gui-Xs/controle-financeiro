@@ -33,59 +33,72 @@ async function initializeDatabase() {
     }
 }
 
-// Função para exportar transações para PDF
-async function exportToPDF() {
+// Função para exportar JSON
+async function exportJSON() {
     try {
         if (!db) {
             await initializeDatabase();
         }
 
         const transactions = await db.transactions.toArray();
-        const doc = new jsPDF();
+        const jsonString = JSON.stringify(transactions, null, 2);
         
-        // Título
-        doc.setFontSize(20);
-        doc.text('Relatório de Transações', 105, 20, { align: 'center' });
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'transacoes.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
         
-        // Data
-        doc.setFontSize(12);
-        doc.text(`Gerado em: ${formatDate(new Date())}`, 105, 30, { align: 'center' });
-        
-        // Cabeçalho da tabela
-        doc.setFontSize(12);
-        const headers = ['Data', 'Descrição', 'Categoria', 'Valor', 'Tipo'];
-        const startY = 40;
-        let y = startY;
-        
-        // Adicionar cabeçalho
-        headers.forEach((header, i) => {
-            doc.text(header, 15 + (i * 50), y);
-        });
-        y += 10;
-        
-        // Adicionar linhas
-        transactions.forEach((transaction, index) => {
-            const date = formatDate(new Date(transaction.date));
-            const amount = formatCurrency(transaction.amount);
-            const type = transaction.type === 'receita' ? 'Receita' : 'Despesa';
-            
-            const row = [date, transaction.description, transaction.category, amount, type];
-            
-            row.forEach((cell, i) => {
-                doc.text(cell, 15 + (i * 50), y + (index * 10));
-            });
-        });
-        
-        // Salvar PDF
-        doc.save('relatorio-transacoes.pdf');
+        alert('Arquivo JSON exportado com sucesso!');
     } catch (error) {
-        console.error('Erro ao exportar PDF:', error);
-        alert('Erro ao gerar PDF. Por favor, tente novamente.');
+        console.error('Erro ao exportar JSON:', error);
+        alert('Erro ao exportar JSON. Por favor, tente novamente.');
     }
 }
 
-// Função para importar transações do PDF
-async function importFromPDF(event) {
+// Função para importar JSON
+async function importJSON(event) {
+    try {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const jsonString = e.target.result;
+                const transactions = JSON.parse(jsonString);
+                
+                if (!db) {
+                    await initializeDatabase();
+                }
+                
+                // Adicionar transações
+                for (const transaction of transactions) {
+                    await db.transactions.add(transaction);
+                }
+                
+                // Atualizar tabela
+                updateTransactionsTable();
+                
+                alert('Transações importadas com sucesso!');
+            } catch (error) {
+                console.error('Erro ao processar JSON:', error);
+                alert('Erro ao processar o JSON. Por favor, tente novamente.');
+            }
+        };
+        reader.readAsText(file);
+    } catch (error) {
+        console.error('Erro ao importar JSON:', error);
+        alert('Erro ao importar JSON. Por favor, tente novamente.');
+    }
+}
+
+// Função para importar comprovante
+async function importReceipt(event) {
     try {
         const file = event.target.files[0];
         if (!file) return;
@@ -102,7 +115,7 @@ async function importFromPDF(event) {
                 );
                 
                 const content = text.data.text;
-                const transactions = parseTransactionsFromText(content);
+                const transactions = parseReceiptContent(content);
                 
                 if (!db) {
                     await initializeDatabase();
@@ -118,34 +131,49 @@ async function importFromPDF(event) {
                 
                 alert('Transações importadas com sucesso!');
             } catch (error) {
-                console.error('Erro ao processar PDF:', error);
-                alert('Erro ao processar o PDF. Por favor, tente novamente.');
+                console.error('Erro ao processar comprovante:', error);
+                alert('Erro ao processar o comprovante. Por favor, tente novamente.');
             }
         };
         reader.readAsArrayBuffer(file);
     } catch (error) {
-        console.error('Erro ao importar PDF:', error);
-        alert('Erro ao importar PDF. Por favor, tente novamente.');
+        console.error('Erro ao importar comprovante:', error);
+        alert('Erro ao importar comprovante. Por favor, tente novamente.');
     }
 }
 
-// Função para parsear transações do texto
-function parseTransactionsFromText(text) {
+// Função para parsear conteúdo do comprovante
+function parseReceiptContent(text) {
     const transactions = [];
     const lines = text.split('\n');
     
+    // Procurar por padrões comuns em comprovantes
+    let currentDate;
+    let currentDescription;
+    let currentAmount;
+    
     for (const line of lines) {
-        const match = line.match(/(\d{2}\/\d{2}\/\d{4})\s+(.+?)\s+(\d+\.?\d*),\d{2}\s+(Receita|Despesa)/);
-        if (match) {
-            const [_, dateStr, description, amountStr, type] = match;
-            const date = new Date(dateStr);
-            const amount = parseFloat(amountStr.replace(',', '.'));
-            
+        // Tentar encontrar data
+        const dateMatch = line.match(/(\d{2}\/\d{2}\/\d{4})/);
+        if (dateMatch) {
+            currentDate = new Date(dateMatch[1]);
+            continue;
+        }
+        
+        // Tentar encontrar valor
+        const amountMatch = line.match(/(\d+\.?\d*),\d{2}/);
+        if (amountMatch) {
+            currentAmount = parseFloat(amountMatch[1].replace(',', '.'));
+            continue;
+        }
+        
+        // Se encontrou data e valor, criar transação
+        if (currentDate && currentAmount) {
             transactions.push({
-                date: date.getTime(),
-                description: description.trim(),
-                amount,
-                type: type.toLowerCase(),
+                date: currentDate.getTime(),
+                description: currentDescription || 'Comprovante',
+                amount: currentAmount,
+                type: 'despesa',
                 category: 'importado',
                 paymentMethod: 'importado',
                 installments: 1,
@@ -153,6 +181,11 @@ function parseTransactionsFromText(text) {
                 frequency: '',
                 endDate: null
             });
+            
+            // Resetar valores
+            currentDate = null;
+            currentAmount = null;
+            currentDescription = null;
         }
     }
     
@@ -210,6 +243,31 @@ async function addTransaction(e) {
         alert('Erro ao adicionar transação. Por favor, tente novamente.');
     }
 }
+
+// Adicionando eventos de clique para os botões
+document.addEventListener('DOMContentLoaded', () => {
+    // Exportar JSON
+    document.getElementById('exportData')?.addEventListener('click', exportJSON);
+    
+    // Exportar PDF
+    document.getElementById('exportPDF')?.addEventListener('click', exportToPDF);
+    
+    // Importar JSON
+    const importDataBtn = document.getElementById('importData');
+    const fileInput = document.getElementById('fileInput');
+    if (importDataBtn && fileInput) {
+        importDataBtn.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', importJSON);
+    }
+    
+    // Importar Comprovante
+    const importReceiptBtn = document.getElementById('importReceipt');
+    const receiptInput = document.getElementById('receiptInput');
+    if (importReceiptBtn && receiptInput) {
+        importReceiptBtn.addEventListener('click', () => receiptInput.click());
+        receiptInput.addEventListener('change', importReceipt);
+    }
+});
 
 // Função para atualizar a tabela de transações
 async function updateTransactionsTable() {
