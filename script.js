@@ -571,18 +571,15 @@ async function updateTransactionsTable() {
                 <div class="transaction-actions">
                     <span class="amount ${transaction.type}">${amount}</span>
                     <button class="edit-btn" onclick="editTransaction(${transaction.id})">
-                <td>${formatCurrency(transaction.amount)}</td>
-                <td>${transaction.type === 'receita' ? '<i class="fas fa-arrow-up text-success"></i>' : '<i class="fas fa-arrow-down text-danger"></i>'}</td>
-                <td>
-                    <button onclick="editTransaction('${transaction.id}')" class="action-btn">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button onclick="deleteTransaction('${transaction.id}')" class="action-btn">
+                    <button class="delete-btn" onclick="deleteTransaction(${transaction.id})">
                         <i class="fas fa-trash"></i>
                     </button>
-                </td>
+                </div>
             `;
-            tableBody.appendChild(row);
+            
+            transactionsList.appendChild(li);
         });
 
         // Atualizar totais
