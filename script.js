@@ -443,7 +443,10 @@ async function addTransaction(e) {
     // Processar a data corretamente
     const dateInput = document.getElementById('date').value;
     const [day, month, year] = dateInput.split('/');
-    const date = new Date(year, month - 1, day);
+    
+    // Criar uma string ISO com a data à meia-noite
+    const dateISO = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T00:00:00.000Z`;
+    const date = new Date(dateISO);
     
     console.log('Dados do formulário:', {
         description,
