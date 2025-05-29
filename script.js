@@ -59,7 +59,10 @@ function formatDate(date) {
         
         // Se date for um número (timestamp), converte para Date
         if (typeof date === 'number') {
-            date = new Date(date);
+            const d = new Date(date);
+            if (d instanceof Date && !isNaN(d.getTime())) {
+                return new Intl.DateTimeFormat('pt-BR').format(d);
+            }
         }
         
         // Se date for uma string, tentar converter para Date
@@ -68,13 +71,11 @@ function formatDate(date) {
             const dateParts = date.split('/');
             if (dateParts.length === 3) {
                 const [day, month, year] = dateParts;
-                date = new Date(year, month - 1, day);
+                const d = new Date(year, month - 1, day);
+                if (d instanceof Date && !isNaN(d.getTime())) {
+                    return new Intl.DateTimeFormat('pt-BR').format(d);
+                }
             }
-        }
-        
-        // Verifica se é uma data válida
-        if (date instanceof Date && !isNaN(date.getTime())) {
-            return new Intl.DateTimeFormat('pt-BR').format(date);
         }
         
         // Se não for uma data válida, retorna uma string vazia
