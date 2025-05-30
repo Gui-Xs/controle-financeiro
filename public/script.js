@@ -434,6 +434,8 @@ async function syncTransactionsWithFirebase() {
 // Função para atualizar a tabela de transações
 async function updateTransactionsTable() {
     try {
+        console.log('Iniciando atualização da tabela...');
+        
         // Verificar se o usuário está logado
         const user = firebase.auth().currentUser;
         if (!user) {
@@ -443,21 +445,28 @@ async function updateTransactionsTable() {
 
         // Referência para o Firestore
         const userRef = db.collection('users').doc(user.uid);
+        console.log('Referência do Firestore:', userRef.path);
 
         // Obter transações
         const doc = await userRef.get();
+        console.log('Resultado da consulta:', doc.exists);
+        
         if (doc.exists) {
             const data = doc.data();
+            console.log('Dados do documento:', data);
             const transactions = data.transactions || [];
+            console.log('Transações encontradas:', transactions.length);
 
             // Obter filtros ativos
             const categoryFilter = document.getElementById('categoryFilter');
             const monthFilter = document.getElementById('monthFilter');
             const category = categoryFilter ? categoryFilter.value : '';
             const month = monthFilter ? monthFilter.value : '';
+            console.log('Filtros ativos:', { category, month });
 
             // Filtrar transações
             let filteredTransactions = [...transactions];
+            console.log('Transações antes do filtro:', filteredTransactions.length);
             
             // Aplicar filtro de categoria
             if (category && category !== 'todos') {
@@ -474,15 +483,18 @@ async function updateTransactionsTable() {
                 });
             }
 
+            console.log('Transações após filtros:', filteredTransactions.length);
             // Ordenar transações por data
             filteredTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
 
             // Atualizar tabela
             const tableBody = document.getElementById('transactionsTableBody');
             if (tableBody) {
+                console.log('Encontrado elemento tableBody');
                 tableBody.innerHTML = '';
 
                 filteredTransactions.forEach(transaction => {
+                    console.log('Adicionando transação à tabela:', transaction);
                     const row = document.createElement('tr');
                     row.innerHTML = `
                         <td>${transaction.description}</td>
@@ -500,10 +512,13 @@ async function updateTransactionsTable() {
                     tableBody.appendChild(row);
                 });
 
+                console.log('Tabela atualizada com sucesso');
                 // Atualizar totais
                 await updateTotals();
                 // Atualizar gráfico
                 await updateChart();
+            } else {
+                console.error('Elemento tableBody não encontrado');
             }
         } else {
             console.error('Documento do usuário não encontrado');
