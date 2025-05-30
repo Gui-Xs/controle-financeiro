@@ -210,19 +210,19 @@ async function exportToPDF() {
 
         // Criar PDF
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF('p', 'mm', 'a4');
+        const pdf = new jsPDF('p', 'mm', 'a4');
         
         // Configurar fontes
-        doc.setFont('helvetica');
-        doc.setFontSize(12);
+        pdf.setFont('helvetica');
+        pdf.setFontSize(12);
 
         // Título
-        doc.setFontSize(18);
-        doc.text('Relatório de Transações', 105, 20, { align: 'center' });
+        pdf.setFontSize(18);
+        pdf.text('Relatório de Transações', 105, 20, { align: 'center' });
         
         // Data
-        doc.setFontSize(10);
-        doc.text(`Gerado em: ${formatDate(new Date())}`, 105, 30, { align: 'center' });
+        pdf.setFontSize(10);
+        pdf.text(`Gerado em: ${formatDate(new Date())}`, 105, 30, { align: 'center' });
         
         // Cabeçalho da tabela
         const headers = ['Data', 'Descrição', 'Categoria', 'Valor', 'Tipo'];
@@ -230,15 +230,15 @@ async function exportToPDF() {
         let y = startY;
         
         // Adicionar cabeçalho
-        doc.setFontSize(12);
-        doc.setFont('helvetica', 'bold');
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'bold');
         headers.forEach((header, i) => {
-            doc.text(header, 15 + (i * 50), y);
+            pdf.text(header, 15 + (i * 50), y);
         });
         y += 15;
         
         // Adicionar linhas
-        doc.setFont('helvetica', 'normal');
+        pdf.setFont('helvetica', 'normal');
         transactions.forEach((transaction, index) => {
             const date = formatDate(new Date(transaction.date));
             const amount = formatCurrency(transaction.amount);
@@ -247,17 +247,17 @@ async function exportToPDF() {
             const row = [date, transaction.description, transaction.category, amount, type];
             
             row.forEach((cell, i) => {
-                doc.text(cell, 15 + (i * 50), y + (index * 10));
+                pdf.text(cell, 15 + (i * 50), y + (index * 10));
             });
         });
         
         // Adicionar rodapé
         y += 10;
-        doc.setFontSize(10);
-        doc.text('Gerado pelo Controle Financeiro', 105, y + 10, { align: 'center' });
+        pdf.setFontSize(10);
+        pdf.text('Gerado pelo Controle Financeiro', 105, y + 10, { align: 'center' });
         
         // Salvar PDF
-        doc.save('relatorio-transacoes.pdf');
+        pdf.save('relatorio-transacoes.pdf');
         alert('PDF gerado com sucesso!');
     } catch (error) {
         console.error('Erro ao exportar PDF:', error);
