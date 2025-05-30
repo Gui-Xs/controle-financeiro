@@ -300,6 +300,111 @@ main {
     margin-bottom: 0.5rem;
     transition: background-color var(--transition);
     align-items: center;
+    min-height: 50px;
+    height: 50px;
+    box-sizing: border-box;
+}
+
+.transaction-item:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    height: 50px;
+}
+
+.transaction-item span {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    transition: background-color var(--transition);
+    min-width: 0;
+    height: 100%;
+    box-sizing: border-box;
+}
+
+.transaction-item span:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Estilos específicos para o valor */
+.transaction-item .amount {
+    justify-content: flex-end;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    background-color: rgba(255, 255, 255, 0.05);
+    height: 100%;
+    display: flex;
+    align-items: center;
+}
+
+.transaction-item.transaction.receita .amount {
+    background-color: rgba(16, 185, 129, 0.2);
+    color: var(--success-color);
+}
+
+.transaction-item.transaction.despesa .amount {
+    background-color: rgba(239, 68, 68, 0.2);
+    color: var(--danger-color);
+}
+
+/* Estilo para o valor negativo */
+.transaction-item.transaction.despesa .amount::before {
+    content: '-';
+    color: var(--danger-color);
+    margin-right: 0.25rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+}
+
+/* Estilo para o valor no cabeçalho */
+.transaction-header .amount {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.7);
+    height: 100%;
+    display: flex;
+    align-items: center;
+}
+
+/* Estilo para a descrição */
+.transaction-item .description {
+    justify-content: flex-start;
+    min-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    height: 100%;
+    display: flex;
+    align-items: center;
+}
+
+/* Estilo para a categoria */
+.transaction-item .category {
+    justify-content: flex-start;
+    min-width: 150px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+}
+
+/* Estilo para a data */
+.transaction-item .date {
+    justify-content: flex-end;
+    min-width: 150px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+}
+
+/* Estilo para a forma de pagamento */
+.transaction-item .payment-method {
+    justify-content: flex-end;
+    min-width: 150px;
+    height: 100%;
+    display: flex;
+    align-items: center;
 }
 
 .transaction-item:hover {
