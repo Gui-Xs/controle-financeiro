@@ -1,5 +1,5 @@
-// Inicializar Firebase usando a configuração do firebase.js
-firebase.initializeApp(window.firebaseConfig);
+// Usando as referências do firebase.js
+const db = window.db;
 
 // Funções auxiliares
 function formatCurrency(value) {
@@ -199,9 +199,6 @@ async function addTransaction(e) {
         window.isSubmitting = false;
     }
 }
-
-// Usando as referências do firebase.js
-const db = window.db;
 
 // Testar conexão com o Firestore
 try {
