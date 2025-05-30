@@ -23,9 +23,15 @@ console.log('Autenticação configurada:', auth);
 // Configurar provedor do Google
 const provider = new firebase.auth.GoogleAuthProvider();
 provider.setCustomParameters({
-    prompt: 'select_account',
-    cookie_policy: 'single_host_origin'
+    prompt: 'select_account'
 });
+
+// Configurar opções de autenticação
+firebase.auth().setPersistence(firebase.auth.Auth.Persistence.SESSION);
+
+// Configurar opções de popup
+provider.addScope('https://www.googleapis.com/auth/userinfo.email');
+provider.addScope('https://www.googleapis.com/auth/userinfo.profile');
 
 // Configurar opções de autenticação
 firebase.auth().setPersistence(firebase.auth.Auth.Persistence.SESSION);
@@ -99,15 +105,11 @@ async function login() {
         
         return result.user;
     } catch (error) {
-        console.error('Erro detalhado:', error);
-        console.error('Mensagem:', error.message);
-        console.error('Código:', error.code);
-        
-        if (error.code === 'auth/popup-closed-by-user') {
-            alert('Popup fechado pelo usuário');
-        } else if (error.code === 'auth/popup-blocked') {
-            alert('Popup bloqueado pelo navegador. Por favor, permita popups deste site.');
-        } else {
+        console.error('Erro ao fazer login:', error);
+        alert('Erro ao fazer login: ' + error.message);
+        // Limpar qualquer popup pendente
+        if (window.opener) {
+            window.opener = null;
             alert(error.message || 'Erro ao fazer login. Por favor, tente novamente.');
         }
         throw error;
