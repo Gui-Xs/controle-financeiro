@@ -843,10 +843,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         alert('Erro ao iniciar o aplicativo. Por favor, recarregue a página.');
     }
 });
-    } catch (error) {
-        console.error('Erro ao inicializar:', error);
-    }
-});
 
 // Fim do script
 console.log('Script carregado com sucesso!');
