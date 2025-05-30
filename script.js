@@ -130,6 +130,34 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// Configurar o evento de submit do formulário apenas uma vez
+function setupTransactionForm() {
+    const form = document.getElementById('transactionForm');
+    if (form) {
+        // Remover qualquer evento existente
+        form.removeEventListener('submit', addTransaction);
+        
+        // Adicionar novo evento
+        form.addEventListener('submit', async (e) => {
+            if (window.isSubmitting) return;
+            
+            e.preventDefault();
+            window.isSubmitting = true;
+            try {
+                await addTransaction(e);
+                window.isSubmitting = false;
+            } catch (error) {
+                console.error('Erro ao processar transação:', error);
+                alert('Erro ao processar transação. Por favor, tente novamente.');
+                window.isSubmitting = false;
+            }
+        });
+        console.log('Evento de submit adicionado ao formulário');
+    } else {
+        console.log('Formulário não encontrado inicialmente');
+    }
+}
+
 // Função para inicializar o banco de dados
 let db = null;
 
@@ -575,6 +603,12 @@ document.addEventListener('DOMContentLoaded', () => {
         receiptInput.addEventListener('change', (e) => importReceipt(e));
     }
 });
+
+// Removendo o evento de submit direto do formulário
+const form = document.getElementById('transactionForm');
+if (form) {
+    form.removeEventListener('submit', addTransaction);
+}
 
 // Função para atualizar a tabela de transações
 async function updateTransactionsTable() {
