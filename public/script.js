@@ -510,11 +510,10 @@ async function updateTransactionsTable() {
                 header.innerHTML = `
                     <div class="transaction-details">
                         <span class="description">Descrição</span>
-                        <span class="amount">Valor</span>
                         <span class="category">Categoria</span>
-                        <span class="type">Tipo</span>
                         <span class="date">Data</span>
                         <span class="payment-method">Forma de Pagamento</span>
+                        <span class="amount">Valor</span>
                     </div>
                 `;
                 transactionsList.appendChild(header);
@@ -530,11 +529,10 @@ async function updateTransactionsTable() {
                     detailsDiv.className = 'transaction-details';
                     detailsDiv.innerHTML = `
                         <span class="description">${transaction.description}</span>
-                        <span class="amount">${formatCurrency(transaction.amount)}</span>
                         <span class="category" style="color: ${categoryColors[transaction.category]}">${transaction.category}</span>
-                        <span class="type">${transaction.type}</span>
                         <span class="date">${formatDate(transaction.date)}</span>
                         <span class="payment-method">${transaction.paymentMethod}</span>
+                        <span class="amount">${formatCurrency(transaction.amount)}</span>
                     `;
 
                     const deleteBtn = document.createElement('button');

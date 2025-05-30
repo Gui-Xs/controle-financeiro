@@ -262,80 +262,57 @@ main {
     color: var(--accent-color);
 }
 
-.description {
-    font-weight: 500;
+.transaction-details {
+display: grid;
+grid-template-columns: 3fr 1fr 1fr auto 1fr;
+gap: 1rem;
+align-items: center;
+width: 100%;
+padding: 1rem;
+border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.payment-method {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    width: 180px;
-    flex-shrink: 0;
+.transaction-details span {
+display: flex;
+align-items: center;
+gap: 0.5rem;
+padding: 0.5rem;
+border-radius: 0.5rem;
+transition: background-color var(--transition);
 }
 
-.payment-method i {
-    width: 1rem;
-    text-align: center;
-    color: rgba(255, 255, 255, 0.5);
+.transaction-details span:hover {
+background-color: rgba(255, 255, 255, 0.05);
 }
 
-.method-name {
-    font-size: 0.875rem;
-    color: rgba(255, 255, 255, 0.7);
+.transaction-details .amount {
+justify-content: flex-end;
+font-weight: 500;
+color: var(--accent-color);
 }
 
-.installment-info {
-    min-width: 50px;
-    font-size: 0.875rem;
-    color: rgba(255, 255, 255, 0.7);
+.transaction-details .category {
+justify-content: flex-start;
+font-weight: 400;
+text-transform: capitalize;
 }
 
-.transaction:hover {
-    transform: translateX(5px);
+.transaction-details .date {
+justify-content: flex-end;
+font-weight: 400;
 }
 
-.transaction.receita {
-    border-left: 4px solid var(--success-color);
-}
-
-.transaction.despesa {
-    border-left: 4px solid var(--danger-color);
-}
-
-.transaction-info {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-.transaction-info i {
-    font-size: 1.5rem;
-    color: var(--accent-color);
-}
-
-.transaction-details h3 {
-    font-size: 1rem;
-    margin: 0;
-}
-
-.transaction-details p {
-    font-size: 0.875rem;
-    color: rgba(255, 255, 255, 0.7);
-    margin: 0.25rem 0;
-}
-
-.transaction-details small {
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.5);
+.transaction-details .payment-method {
+justify-content: flex-end;
+font-weight: 400;
 }
 
 .transaction-amount {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    width: 150px;
-    margin-left: 1.5rem;
+display: flex;
+align-items: center;
+gap: 1rem;
+width: 150px;
+margin-left: 1.5rem;
 }
 
 .amount {
