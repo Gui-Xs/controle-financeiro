@@ -34,14 +34,12 @@ function updateUI(user) {
     loginBtn.style.display = 'block';
     logoutBtn.style.display = 'none';
     
-    if (user && user.uid === 'GB0bUGXjtgUvNQoXrCsiOW6HXYJ2') {
-        console.log('Usuário autorizado:', user.uid);
+    if (user) {
+        console.log('Usuário logado:', user.uid);
         mainContent.style.display = 'block';
         logoutBtn.style.display = 'block';
-        
-
     } else {
-        console.log('Usuário não autorizado ou não logado');
+        console.log('Usuário não logado');
         loginScreen.style.display = 'block';
         loginBtn.style.display = 'block';
     }
@@ -65,13 +63,8 @@ async function login() {
 
         console.log('UID do usuário:', result.user.uid);
         
-        if (result.user.uid === 'GB0bUGXjtgUvNQoXrCsiOW6HXYJ2') {
-            console.log('UID autorizado');
-            updateUI(result.user);
-        } else {
-            console.log('UID não autorizado:', result.user.uid);
-            throw new Error('Usuário não autorizado');
-        }
+        console.log('Usuário logado com sucesso');
+        updateUI(result.user);
         
         return result.user;
     } catch (error) {

@@ -99,6 +99,15 @@ async function addTransaction(e) {
             return;
         }
 
+        // Verificar se o usuário tem permissão para acessar o conteúdo principal
+        const mainContent = document.getElementById('mainContent');
+        if (!mainContent || mainContent.style.display !== 'block') {
+            console.error('Acesso não autorizado ao conteúdo principal');
+            alert('Por favor, faça login novamente.');
+            window.isSubmitting = false;
+            return;
+        }
+
         // Obter os valores do formulário
         const description = document.getElementById('description').value.trim();
         const amount = parseFloat(document.getElementById('amount').value);
