@@ -1,15 +1,23 @@
-// Configurar provedor do Google
+// Configurar provedor do Google com opções de segurança e compatibilidade
 const provider = new firebase.auth.GoogleAuthProvider();
 provider.setCustomParameters({
-    prompt: 'select_account'
+    prompt: 'select_account',
+    cookie_policy: 'single_host_origin'
 });
 
-// Configurar opções de autenticação
-firebase.auth().setPersistence(firebase.auth.Auth.Persistence.SESSION);
+// Configurar opções de autenticação com persistência local
+firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
 // Configurar opções de popup
 provider.addScope('https://www.googleapis.com/auth/userinfo.email');
 provider.addScope('https://www.googleapis.com/auth/userinfo.profile');
+
+// Configurar opções adicionais para segurança
+provider.setCustomParameters({
+    hd: 'gmail.com', // Restringir para contas Gmail
+    access_type: 'offline',
+    login_hint: 'user@example.com' // Substitua pelo email do usuário
+});
 
 console.log('Provedor do Google configurado com configurações de cookie');
 
