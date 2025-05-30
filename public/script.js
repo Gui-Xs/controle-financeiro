@@ -11,45 +11,6 @@ function formatCurrency(value) {
     return value < 0 ? `-${formatted}` : formatted;
 }
 
-// Função para exportar JSON
-async function exportToJson() {
-    try {
-        const transactions = await loadTransactionsFromFirebase();
-        if (!transactions || transactions.length === 0) {
-            alert('Nenhuma transação encontrada para exportar.');
-            return;
-        }
-
-        // Converter para formato mais legível
-        const formattedTransactions = transactions.map(transaction => ({
-            id: transaction.id,
-            description: transaction.description,
-            amount: transaction.amount,
-            category: transaction.category,
-            type: transaction.type,
-            date: transaction.date,
-            paymentMethod: transaction.paymentMethod,
-            timestamp: transaction.timestamp
-        }));
-
-        // Criar blob e link para download
-        const blob = new Blob([JSON.stringify(formattedTransactions, null, 2)], { type: 'application/json' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `transacoes-${new Date().toISOString().split('T')[0]}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-
-        alert('JSON exportado com sucesso!');
-    } catch (error) {
-        console.error('Erro ao exportar JSON:', error);
-        alert('Erro ao exportar JSON. Por favor, tente novamente.');
-    }
-}
-
 // Mapeamento de categorias para ícones e cores
 const categoryColors = {
     'alimentacao': '#FF6B6B',  // Vermelho
@@ -867,22 +828,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Adicionar listener para mudanças de autenticação
         firebase.auth().onAuthStateChanged(async (user) => {
             if (user) {
-                console.log('Usuário logado:', user.email);
-                document.getElementById('loginScreen').style.display = 'none';
-                document.getElementById('mainContent').style.display = 'block';
-                document.getElementById('logoutBtn').style.display = 'block';
-                document.getElementById('themeToggleLogin').style.display = 'none';
-
-                // Carregar transações
-                await updateTransactionsTable();
-                // Atualizar gráfico
-                await updateChart();
-
-                // Adicionar listeners para botões de exportação/importação
-                document.getElementById('exportPdfBtn').addEventListener('click', exportToPDF);
-                document.getElementById('exportJsonBtn').addEventListener('click', exportToJson);
-                document.getElementById('importJsonFile').addEventListener('change', (e) => importJSON(e));
-                document.getElementById('importReceiptFile').addEventListener('change', (e) => importReceipt(e));
+                console.log('Usuário logado:', user.uid);
+                
+                // Carregar transações iniciais
+                const transactions = await loadTransactionsFromFirebase();
+                console.log('Transações carregadas:', transactions);
 
                 // Verificar se o conteúdo principal está visível
                 const mainContent = document.getElementById('mainContent');
@@ -890,6 +840,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                     console.error('Acesso não autorizado ao conteúdo principal');
                     return;
                 }
+
+                // Atualizar tabela
+                await updateTransactionsTable();
+                // Atualizar totais
+                await updateTotals();
+                // Atualizar gráfico
+                await updateChart();
 
                 // Configurar eventos de filtro
                 const categoryFilterInit = document.getElementById('categoryFilter');

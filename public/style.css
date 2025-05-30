@@ -290,36 +290,6 @@ main {
 }
 
 /* Estilos para transações */
-.transaction-actions {
-    display: flex;
-    gap: 1rem;
-    margin-bottom: 1rem;
-    padding: 1rem;
-    background-color: rgba(255, 255, 255, 0.05);
-    border-radius: 0.5rem;
-}
-
-.action-btn {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    background: none;
-    border: none;
-    border-radius: 0.5rem;
-    color: rgba(255, 255, 255, 0.8);
-    cursor: pointer;
-    transition: background-color var(--transition);
-}
-
-.action-btn:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-}
-
-.action-btn i {
-    font-size: 1rem;
-}
-
 .transaction-item {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
