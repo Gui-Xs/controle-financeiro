@@ -1,5 +1,12 @@
 // Configuração do Firebase
 console.log('Iniciando configuração do Firebase...');
+
+// Verificar se o Firebase já está disponível
+if (typeof firebase === 'undefined') {
+    console.error('Firebase não está disponível');
+    throw new Error('Firebase não está disponível');
+}
+
 const firebaseConfig = {
     apiKey: "AIzaSyA4iBJU8fzFXX0ShQX_Wg6n4TK4vwM2Mh0",
     authDomain: "controle-financeiro-9d7c4.firebaseapp.com",
@@ -11,32 +18,37 @@ const firebaseConfig = {
 };
 
 // Inicializar Firebase
-console.log('Iniciando Firebase...');
-firebase.initializeApp(firebaseConfig);
-const app = firebase.app();
-console.log('Firebase inicializado:', app.name);
+try {
+    console.log('Iniciando inicialização do Firebase...');
+    firebase.initializeApp(firebaseConfig);
+    const app = firebase.app();
+    console.log('Firebase inicializado:', app.name);
 
-// Configurar autenticação
-const auth = firebase.auth();
-console.log('Autenticação configurada:', auth);
+    // Configurar autenticação
+    const auth = firebase.auth();
+    console.log('Autenticação configurada:', auth);
 
-// Configurar provedor do Google
-const provider = new firebase.auth.GoogleAuthProvider();
-provider.setCustomParameters({
-    prompt: 'select_account'
-});
+    // Configurar provedor do Google
+    const provider = new firebase.auth.GoogleAuthProvider();
+    provider.setCustomParameters({
+        prompt: 'select_account'
+    });
 
-// Configurar opções de autenticação
-firebase.auth().setPersistence(firebase.auth.Auth.Persistence.SESSION);
+    // Configurar opções de autenticação
+    firebase.auth().setPersistence(firebase.auth.Auth.Persistence.SESSION);
 
-// Configurar opções de popup
-provider.addScope('https://www.googleapis.com/auth/userinfo.email');
-provider.addScope('https://www.googleapis.com/auth/userinfo.profile');
+    // Configurar opções de popup
+    provider.addScope('https://www.googleapis.com/auth/userinfo.email');
+    provider.addScope('https://www.googleapis.com/auth/userinfo.profile');
 
-// Configurar opções de autenticação
-firebase.auth().setPersistence(firebase.auth.Auth.Persistence.SESSION);
+    // Configurar opções de autenticação
+    firebase.auth().setPersistence(firebase.auth.Auth.Persistence.SESSION);
 
-console.log('Provedor do Google configurado com configurações de cookie');
+    console.log('Provedor do Google configurado com configurações de cookie');
+} catch (error) {
+    console.error('Erro ao inicializar Firebase:', error);
+    throw error;
+}
 
 // Função para atualizar a interface
 function updateUI(user) {

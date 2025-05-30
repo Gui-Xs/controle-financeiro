@@ -876,6 +876,15 @@ async function deleteTransaction(id) {
 // Função para adicionar transação
 async function addTransaction(e) {
     try {
+        console.log('Iniciando adição de transação');
+        
+        // Verificar se o Firebase está inicializado
+        if (!firebase || !firebase.auth) {
+            console.error('Firebase não inicializado');
+            alert('Erro: Firebase não inicializado. Por favor, recarregue a página.');
+            return;
+        }
+
         // Verificar se o usuário está logado
         const user = firebase.auth().currentUser;
         if (!user) {
@@ -894,12 +903,14 @@ async function addTransaction(e) {
         
         // Validar campos obrigatórios
         if (!description || !amount || !category || !type || !paymentMethod) {
+            console.error('Campos obrigatórios não preenchidos');
             alert('Por favor, preencha todos os campos obrigatórios.');
             return;
         }
 
         // Validar valor
         if (isNaN(amount) || amount <= 0) {
+            console.error('Valor inválido:', amount);
             alert('Por favor, insira um valor válido.');
             return;
         }
@@ -907,6 +918,7 @@ async function addTransaction(e) {
         // Validar data
         const date = dateInput || new Date().toISOString().split('T')[0];
         if (!date || date.includes('undefined') || date.includes('NaN')) {
+            console.error('Data inválida:', date);
             alert('Data inválida. Usando data atual.');
             date = new Date().toISOString().split('T')[0];
         }
@@ -925,9 +937,18 @@ async function addTransaction(e) {
             timestamp: Date.now()
         };
 
+        console.log('Transação a ser adicionada:', transaction);
+
         // Referência para o Firestore
         const firestore = firebase.firestore();
+        if (!firestore) {
+            throw new Error('Firestore não inicializado');
+        }
+
         const userRef = firestore.collection('users').doc(user.uid);
+        if (!userRef) {
+            throw new Error('Referência do usuário não encontrada');
+        }
         
         // Adicionar transação usando set com merge
         await userRef.set({
@@ -935,6 +956,8 @@ async function addTransaction(e) {
             lastSync: Date.now()
         }, { merge: true });
 
+        console.log('Transação adicionada com sucesso');
+        
         // Limpar o formulário
         document.getElementById('transactionForm').reset();
         
