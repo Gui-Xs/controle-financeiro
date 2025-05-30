@@ -474,16 +474,22 @@ async function updateTransactionsTable() {
             // Aplicar filtro de categoria
             if (category && category !== 'todos') {
                 filteredTransactions = filteredTransactions.filter(tx => tx.category === category);
+            } else if (category === 'todos') {
+                // Se categoria é 'todos', mantém todas as transações
+                filteredTransactions = [...transactions];
             }
 
             // Aplicar filtro de mês
-            if (month) {
+            if (month && month !== 'todos') {
                 filteredTransactions = filteredTransactions.filter(tx => {
                     const txDate = new Date(tx.date);
                     const selectedDate = new Date(month);
                     return txDate.getMonth() === selectedDate.getMonth() && 
                            txDate.getFullYear() === selectedDate.getFullYear();
                 });
+            } else if (month === 'todos') {
+                // Se mês é 'todos', mantém todas as transações
+                filteredTransactions = [...transactions];
             }
 
             console.log('Transações após filtros:', filteredTransactions.length);
