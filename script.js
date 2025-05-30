@@ -1071,19 +1071,13 @@ async function loadTransactionsFromFirebase() {
     }
 }
 
-// Adicionar eventos quando a página carregar
+// Adicionando eventos quando a página carregar
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         await initializeDatabase();
         
         // Carregar transações do Firebase
         await loadTransactionsFromFirebase();
-        
-        // Adicionar evento ao formulário de transação
-        const transactionForm = document.getElementById('transactionForm');
-        if (transactionForm) {
-            transactionForm.addEventListener('submit', addTransaction);
-        }
         
         // Atualizar a tabela inicialmente
         updateTransactionsTable();
