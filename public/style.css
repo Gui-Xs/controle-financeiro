@@ -321,8 +321,26 @@ main {
 .transaction-details .amount {
     justify-content: flex-end;
     font-weight: 500;
-    color: var(--accent-color);
     min-width: 100px;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+}
+
+.transaction-details .amount.positive {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: var(--success-color);
+}
+
+.transaction-details .amount.negative {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: var(--danger-color);
+}
+
+/* Adicionando estilo para o valor no cabeçalho */
+.transaction-header .amount {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.7);
 }
 
 .transaction-details .category {

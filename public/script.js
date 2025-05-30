@@ -532,7 +532,7 @@ async function updateTransactionsTable() {
                         <span class="category" style="color: ${categoryColors[transaction.category]}">${transaction.category}</span>
                         <span class="date">${formatDate(transaction.date)}</span>
                         <span class="payment-method">${transaction.paymentMethod}</span>
-                        <span class="amount">${formatCurrency(transaction.amount)}</span>
+                        <span class="amount ${transaction.type === 'receita' ? 'positive' : 'negative'}">${formatCurrency(transaction.amount)}</span>
                     `;
 
                     const deleteBtn = document.createElement('button');
