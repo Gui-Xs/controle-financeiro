@@ -83,13 +83,22 @@ function formatDate(date) {
 function setupTransactionForm() {
     const form = document.getElementById('transactionForm');
     if (form) {
+        // Remover qualquer evento existente
+        form.removeEventListener('submit', addTransaction);
+        
+        // Adicionar novo evento
         form.addEventListener('submit', async (e) => {
+            if (isSubmitting) return;
+            
             e.preventDefault();
+            isSubmitting = true;
             try {
                 await addTransaction(e);
+                isSubmitting = false;
             } catch (error) {
                 console.error('Erro ao processar transação:', error);
                 alert('Erro ao processar transação. Por favor, tente novamente.');
+                isSubmitting = false;
             }
         });
         console.log('Evento de submit adicionado ao formulário');
@@ -487,7 +496,7 @@ async function addTransaction(e) {
         // Garantir que a data esteja sempre no formato YYYY-MM-DD
         if (typeof date === 'string') {
             // Remover qualquer caractere inválido
-            date = date.replace(/[\D]/g, '');
+            date = date.replace(/\D/g, '');
             // Se tiver mais de 8 dígitos, pegar os últimos 8
             if (date.length > 8) {
                 date = date.slice(-8);
@@ -522,7 +531,8 @@ async function addTransaction(e) {
 
         // Adicionar a transação
         const result = await db.transactions.add(transaction);
-        console.log('Transação adicionada com ID:', result);
+        console.log('Transação antes de salvar:', transaction);
+        console.log('Transação salva com sucesso:', result);
         
         // Atualizar a tabela
         await updateTransactionsTable();
