@@ -557,6 +557,19 @@ async function updateTransactionsTable() {
     }
 }
 
+// Função para deletar imagem
+async function deleteImage(imagePath) {
+    try {
+        const result = await window.deleteFile(imagePath);
+        if (result) {
+            alert('Imagem deletada com sucesso!');
+        }
+    } catch (error) {
+        console.error('Erro ao deletar imagem:', error);
+        alert('Erro ao deletar imagem. Por favor, tente novamente.');
+    }
+}
+
 // Função para deletar transação
 async function deleteTransaction(id) {
     if (window.isSubmitting) return;
@@ -585,6 +598,13 @@ async function deleteTransaction(id) {
         if (doc.exists) {
             const data = doc.data();
             const currentTransactions = data.transactions || [];
+
+            // Encontrar a transação para deletar
+            const transactionToDelete = currentTransactions.find(tx => tx.id === id);
+            if (transactionToDelete && transactionToDelete.imagePath) {
+                // Deletar a imagem associada
+                await deleteImage(transactionToDelete.imagePath);
+            }
 
             // Remover a transação
             const updatedTransactions = currentTransactions.filter(tx => tx.id !== id);

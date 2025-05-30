@@ -15,6 +15,26 @@ window.firebaseConfig = firebaseConfig;
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
+const storage = firebase.storage();
+
+// Export Storage reference
+window.storage = storage;
+
+// Export Storage functions
+window.deleteFile = async (path) => {
+    try {
+        const fileRef = storage.ref(path);
+        await fileRef.delete();
+        console.log('Arquivo deletado com sucesso:', path);
+        return true;
+    } catch (error) {
+        console.error('Erro ao deletar arquivo:', error);
+        throw error;
+    }
+};
+
+// Export Storage reference
+window.storageRef = (path) => storage.ref(path);
 
 // Test connection
 try {
