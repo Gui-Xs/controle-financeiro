@@ -289,6 +289,80 @@ main {
     min-width: 0;
 }
 
+/* Estilos para transações */
+.transaction-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background-color: rgba(255, 255, 255, 0.02);
+    border-radius: 0.5rem;
+    margin-bottom: 0.5rem;
+    transition: background-color var(--transition);
+}
+
+.transaction-item:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.transaction-item:last-child .transaction-details {
+    border-bottom: none;
+}
+
+.transaction-item .transaction-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.transaction-item .transaction-details span {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    transition: background-color var(--transition);
+    min-width: 0;
+}
+
+.transaction-item .transaction-details span:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Estilos específicos para o valor */
+.transaction-item .transaction-details .amount {
+    justify-content: flex-end;
+    font-weight: 500;
+    min-width: 100px;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.transaction-item.transaction.receita .amount {
+    background-color: rgba(16, 185, 129, 0.2);
+    color: var(--success-color);
+}
+
+.transaction-item.transaction.despesa .amount {
+    background-color: rgba(239, 68, 68, 0.2);
+    color: var(--danger-color);
+}
+
+/* Estilo para o valor negativo */
+.transaction-item.transaction.despesa .amount::before {
+    content: '-';
+    color: var(--danger-color);
+    margin-right: 0.25rem;
+    font-weight: bold;
+}
+
+/* Estilo para o valor no cabeçalho */
+.transaction-header .amount {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.7);
+}
+
 .transaction-item {
     background-color: rgba(255, 255, 255, 0.02);
     border-radius: 0.5rem;
