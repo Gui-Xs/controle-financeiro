@@ -522,8 +522,6 @@ function parseReceiptContent(text) {
             currentDescription = null;
         }
     }
-    
-    return transactions;
 }
 
 // Função para adicionar transação
@@ -591,11 +589,14 @@ async function addTransaction(e) {
         // Atualizar a tabela
         await updateTransactionsTable();
         
+        // Sincronizar com Firebase
+        await syncTransactionsWithFirebase();
+        
         // Limpar o formulário
         document.getElementById('transactionForm').reset();
         
         // Mostrar mensagem de sucesso
-        alert('Transação adicionada com sucesso!');
+        alert('Transação adicionada e sincronizada com sucesso!');
     } catch (error) {
         console.error('Erro ao adicionar transação:', error);
         alert('Erro ao adicionar transação. Por favor, tente novamente.');
@@ -968,10 +969,49 @@ function updateChart(categoryTotals) {
     window.chart = new Chart(chartCanvas, config);
 }
 
+// Função para carregar transações do Firebase
+async function loadTransactionsFromFirebase() {
+    try {
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            console.error('Usuário não está logado');
+            return;
+        }
+
+        // Referência para o Firestore
+        const firestore = firebase.firestore();
+        const userRef = firestore.collection('users').doc(user.uid);
+        
+        // Obter documento do usuário
+        const doc = await userRef.get();
+        
+        if (doc.exists) {
+            const data = doc.data();
+            if (data.transactions && Array.isArray(data.transactions)) {
+                // Limpar banco local
+                await db.transactions.clear();
+                
+                // Adicionar todas as transações
+                await db.transactions.bulkAdd(data.transactions);
+                console.log('Transações carregadas do Firebase:', data.transactions.length);
+                
+                // Atualizar tabela
+                await updateTransactionsTable();
+            }
+        }
+    } catch (error) {
+        console.error('Erro ao carregar transações do Firebase:', error);
+        alert('Erro ao carregar transações do Firebase. Por favor, tente novamente.');
+    }
+}
+
 // Adicionar eventos quando a página carregar
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         await initializeDatabase();
+        
+        // Carregar transações do Firebase
+        await loadTransactionsFromFirebase();
         
         // Adicionar evento ao formulário de transação
         const transactionForm = document.getElementById('transactionForm');
