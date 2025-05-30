@@ -784,53 +784,65 @@ async function loadTransactionsFromFirebase() {
 // Inicialização do aplicativo
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        // Verificar se o usuário está logado
-        const user = firebase.auth().currentUser;
-        if (!user) {
-            console.error('Usuário não está logado');
-            return;
-        }
+        // Adicionar listener para mudanças de autenticação
+        firebase.auth().onAuthStateChanged(async (user) => {
+            if (user) {
+                console.log('Usuário logado:', user.uid);
+                
+                // Carregar transações iniciais
+                const transactions = await loadTransactionsFromFirebase();
+                console.log('Transações carregadas:', transactions);
 
-        // Carregar transações iniciais
-        const transactions = await loadTransactionsFromFirebase();
-        console.log('Transações carregadas:', transactions);
+                // Verificar se o conteúdo principal está visível
+                const mainContent = document.getElementById('mainContent');
+                if (!mainContent || mainContent.style.display !== 'block') {
+                    console.error('Acesso não autorizado ao conteúdo principal');
+                    return;
+                }
 
-        // Verificar se o conteúdo principal está visível
-        const mainContent = document.getElementById('mainContent');
-        if (!mainContent || mainContent.style.display !== 'block') {
-            console.error('Acesso não autorizado ao conteúdo principal');
-            return;
-        }
+                // Atualizar tabela
+                await updateTransactionsTable();
+                // Atualizar totais
+                await updateTotals();
+                // Atualizar gráfico
+                await updateChart();
 
-        // Atualizar tabela
-        await updateTransactionsTable();
-        // Atualizar totais
-        await updateTotals();
-        // Atualizar gráfico
-        await updateChart();
+                // Configurar eventos de filtro
+                const categoryFilterInit = document.getElementById('categoryFilter');
+                const monthFilterInit = document.getElementById('monthFilter');
+                
+                if (categoryFilterInit) {
+                    categoryFilterInit.addEventListener('change', updateTransactionsTable);
+                }
+                if (monthFilterInit) {
+                    monthFilterInit.addEventListener('change', updateTransactionsTable);
+                }
 
-        // Configurar eventos de filtro
-        const categoryFilterInit = document.getElementById('categoryFilter');
-        const monthFilterInit = document.getElementById('monthFilter');
-        
-        if (categoryFilterInit) {
-            categoryFilterInit.addEventListener('change', updateTransactionsTable);
-        }
-        if (monthFilterInit) {
-            monthFilterInit.addEventListener('change', updateTransactionsTable);
-        }
+                // Configurar filtro de categoria
+                const categoryFilter = document.getElementById('categoryFilter');
+                if (categoryFilter) {
+                    categoryFilter.addEventListener('change', updateTransactionsTable);
+                }
 
-        // Configurar filtro de categoria
-        const categoryFilter = document.getElementById('categoryFilter');
-        if (categoryFilter) {
-            categoryFilter.addEventListener('change', updateTransactionsTable);
-        }
-
-        // Configurar filtro de mês
-        const monthFilter = document.getElementById('monthFilter');
-        if (monthFilter) {
-            monthFilter.addEventListener('change', updateTransactionsTable);
-        }
+                // Configurar filtro de mês
+                const monthFilter = document.getElementById('monthFilter');
+                if (monthFilter) {
+                    monthFilter.addEventListener('change', updateTransactionsTable);
+                }
+            } else {
+                console.log('Usuário não está logado');
+                // Limpar dados e esconder conteúdo principal
+                const mainContent = document.getElementById('mainContent');
+                if (mainContent) {
+                    mainContent.style.display = 'none';
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Erro na inicialização:', error);
+        alert('Erro ao iniciar o aplicativo. Por favor, recarregue a página.');
+    }
+});
     } catch (error) {
         console.error('Erro ao inicializar:', error);
     }
