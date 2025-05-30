@@ -143,12 +143,11 @@ async function addTransaction(e) {
         };
 
         // Referência para o Firestore
-        const firestore = firebase.firestore();
-        const userRef = firestore.collection('users').doc(user.uid);
+        const userRef = db.collection('users').doc(user.uid);
         
         // Adicionar transação usando set com merge
         await userRef.set({
-            transactions: firebase.firestore.FieldValue.arrayUnion(transaction),
+            transactions: db.FieldValue.arrayUnion(transaction),
             lastSync: Date.now()
         }, { merge: true });
 
@@ -426,8 +425,7 @@ async function updateTransactionsTable() {
         }
 
         // Referência para o Firestore
-        const firestore = firebase.firestore();
-        const userRef = firestore.collection('users').doc(user.uid);
+        const userRef = db.collection('users').doc(user.uid);
 
         // Obter transações
         const doc = await userRef.get();
@@ -490,6 +488,9 @@ async function updateTransactionsTable() {
                 // Atualizar gráfico
                 await updateChart();
             }
+        } else {
+            console.error('Documento do usuário não encontrado');
+            return;
         }
     } catch (error) {
         console.error('Erro ao atualizar tabela:', error);
