@@ -70,7 +70,7 @@ function updateUI(user) {
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 try {
-                    await addTransaction(e);
+                    await window.addTransaction(e);
                     console.log('Transação adicionada com sucesso');
                 } catch (error) {
                     console.error('Erro ao adicionar transação:', error);

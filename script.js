@@ -619,10 +619,10 @@ async function updateTransactionsTable() {
         const userRef = firestore.collection('users').doc(user.uid);
         
         // Obter transações do Firebase
-        const doc = await userRef.get();
+        const userDoc = await userRef.get();
         let transactions = [];
-        if (doc.exists) {
-            const data = doc.data();
+        if (userDoc.exists) {
+            const data = userDoc.data();
             transactions = data.transactions || [];
         }
         console.log('Atualizando tabela com', transactions.length, 'transações do Firebase');
@@ -650,7 +650,7 @@ async function updateTransactionsTable() {
         // Atualizar os totais
         await updateTotals();
 
-        console.log('Tabela atualizada com sucesso!');
+        console.log('Tabela atualizada com sucesso');
     } catch (error) {
         console.error('Erro ao atualizar tabela:', error);
         alert('Erro ao atualizar tabela. Por favor, tente novamente.');
@@ -675,10 +675,10 @@ async function deleteTransaction(transactionId) {
         const userRef = firestore.collection('users').doc(user.uid);
         
         // Obter transações existentes
-        const doc = await userRef.get();
+        const userDoc = await userRef.get();
         let currentTransactions = [];
-        if (doc.exists) {
-            const data = doc.data();
+        if (userDoc.exists) {
+            const data = userDoc.data();
             currentTransactions = data.transactions || [];
         }
 
@@ -925,10 +925,10 @@ async function loadTransactionsFromFirebase() {
         const userRef = firestore.collection('users').doc(user.uid);
         
         // Obter documento do usuário
-        const doc = await userRef.get();
+        const userDoc = await userRef.get();
         
-        if (doc.exists) {
-            const data = doc.data();
+        if (userDoc.exists) {
+            const data = userDoc.data();
             if (data.transactions && Array.isArray(data.transactions)) {
                 // Adicionar novas transações ao banco local
                 const localTransactions = await db.transactions.toArray();

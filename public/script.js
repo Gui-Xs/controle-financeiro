@@ -71,6 +71,84 @@ class FinanceControl {
         }
     }
 
+    // Exportar a função addTransaction para uso global
+    window.addTransaction = async function(e) {
+        e.preventDefault();
+        
+        try {
+            // Verificar se o usuário está logado
+            const user = firebase.auth().currentUser;
+            if (!user) {
+                console.error('Usuário não está logado');
+                alert('Por favor, faça login primeiro.');
+                return;
+            }
+
+            // Obter os valores do formulário
+            const description = document.getElementById('description').value.trim();
+            const amount = parseFloat(document.getElementById('amount').value);
+            const dateInput = document.getElementById('date').value;
+            const category = document.getElementById('category').value;
+            const type = document.getElementById('type').value;
+            const paymentMethod = document.getElementById('paymentMethod').value;
+            
+            // Validar campos obrigatórios
+            if (!description || !amount || !category || !type || !paymentMethod) {
+                alert('Por favor, preencha todos os campos obrigatórios.');
+                return;
+            }
+
+            // Validar valor
+            if (isNaN(amount) || amount <= 0) {
+                alert('Por favor, insira um valor válido.');
+                return;
+            }
+
+            // Validar data
+            const date = dateInput || new Date().toISOString().split('T')[0];
+            if (!date || date.includes('undefined') || date.includes('NaN')) {
+                alert('Data inválida. Usando data atual.');
+                date = new Date().toISOString().split('T')[0];
+            }
+
+            // Criar objeto de transação com ID único
+            const transaction = {
+                id: Date.now() + Math.random().toString(36).substr(2, 9),
+                description,
+                amount: Math.abs(amount),
+                category,
+                type,
+                date,
+                paymentMethod: paymentMethod.toLowerCase(),
+                frequency: document.getElementById('frequency').value || '',
+                endDate: document.getElementById('endDate').value || '',
+                timestamp: Date.now()
+            };
+
+            // Referência para o Firestore
+            const firestore = firebase.firestore();
+            const userRef = firestore.collection('users').doc(user.uid);
+            
+            // Adicionar transação usando set com merge
+            await userRef.set({
+                transactions: firebase.firestore.FieldValue.arrayUnion(transaction),
+                lastSync: Date.now()
+            }, { merge: true });
+
+            // Limpar o formulário
+            document.getElementById('transactionForm').reset();
+            
+            // Atualizar tabela
+            await updateTransactionsTable();
+            
+            alert('Transação adicionada com sucesso!');
+            
+        } catch (error) {
+            console.error('Erro ao adicionar transação:', error);
+            alert('Erro ao adicionar transação. Por favor, verifique se você está conectado à internet e tente novamente.');
+        }
+    }
+
     async deleteTransaction(id) {
         try {
             console.log('Tentando deletar transação com ID:', id);
