@@ -874,9 +874,7 @@ async function deleteTransaction(id) {
 }
 
 // Função para adicionar transação
-window.addTransaction = async function(e) {
-    e.preventDefault();
-    
+async function addTransaction(e) {
     try {
         // Verificar se o usuário está logado
         const user = firebase.auth().currentUser;
@@ -947,5 +945,78 @@ window.addTransaction = async function(e) {
     } catch (error) {
         console.error('Erro ao adicionar transação:', error);
         alert('Erro ao adicionar transação. Por favor, verifique se você está conectado à internet e tente novamente.');
+    }
+}
+
+// Adicionar evento de submit quando o conteúdo principal for mostrado
+document.addEventListener('DOMContentLoaded', () => {
+    const mainContent = document.getElementById('mainContent');
+    const form = document.getElementById('transactionForm');
+    
+    if (mainContent && form) {
+        // Verificar se o usuário está logado
+        const user = firebase.auth().currentUser;
+        if (user) {
+            // Se o usuário está logado, adicionar o listener do form
+            form.addEventListener('submit', async (e) => {
+                if (window.isSubmitting) return;
+                
+                e.preventDefault();
+                window.isSubmitting = true;
+                try {
+                    await addTransaction(e);
+                    window.isSubmitting = false;
+                } catch (error) {
+                    console.error('Erro ao processar transação:', error);
+                    alert('Erro ao processar transação. Por favor, tente novamente.');
+                    window.isSubmitting = false;
+                }
+            });
+        } else {
+            // Se não está logado, mostrar mensagem e redirecionar para login
+            alert('Por favor, faça login primeiro.');
+            window.location.href = '/login.html';
+        }
+    }
+});
+
+// Função para atualizar a tabela de transações
+async function updateTransactionsTable() {
+    try {
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            console.error('Usuário não está logado');
+            return;
+        }
+
+        const firestore = firebase.firestore();
+        const userRef = firestore.collection('users').doc(user.uid);
+        const userDoc = await userRef.get();
+
+        if (userDoc.exists) {
+            const data = userDoc.data();
+            const transactions = data.transactions || [];
+            
+            const tableBody = document.getElementById('transactionsTable').getElementsByTagName('tbody')[0];
+            if (!tableBody) return;
+            
+            tableBody.innerHTML = '';
+            
+            transactions.forEach((transaction, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${formatDate(transaction.date)}</td>
+                    <td>${transaction.description}</td>
+                    <td>${transaction.category}</td>
+                    <td>${formatCurrency(transaction.amount)}</td>
+                    <td>
+                        <button onclick="deleteTransaction('${transaction.id}')" class="delete-btn">Excluir</button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+    } catch (error) {
+        console.error('Erro ao atualizar tabela:', error);
     }
 };
