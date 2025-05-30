@@ -264,7 +264,7 @@ main {
 
 .transaction-details {
     display: grid;
-    grid-template-columns: 3fr 1fr 1fr 1fr 1fr;
+    grid-template-columns: repeat(5, 1fr);
     gap: 1rem;
     align-items: center;
     width: 100%;
@@ -291,48 +291,39 @@ main {
 
 /* Estilos para transações */
 .transaction-item {
-    display: flex;
-    align-items: center;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
     gap: 1rem;
     padding: 1rem;
     background-color: rgba(255, 255, 255, 0.02);
     border-radius: 0.5rem;
     margin-bottom: 0.5rem;
     transition: background-color var(--transition);
+    align-items: center;
 }
 
 .transaction-item:hover {
     background-color: rgba(255, 255, 255, 0.05);
 }
 
-.transaction-item:last-child .transaction-details {
-    border-bottom: none;
-}
-
-.transaction-item .transaction-details {
-    flex: 1;
-    min-width: 0;
-}
-
-.transaction-item .transaction-details span {
+.transaction-item span {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    justify-content: flex-start;
     padding: 0.5rem;
     border-radius: 0.5rem;
     transition: background-color var(--transition);
     min-width: 0;
 }
 
-.transaction-item .transaction-details span:hover {
+.transaction-item span:hover {
     background-color: rgba(255, 255, 255, 0.05);
 }
 
 /* Estilos específicos para o valor */
-.transaction-item .transaction-details .amount {
+.transaction-item .amount {
     justify-content: flex-end;
     font-weight: 500;
-    min-width: 100px;
     padding: 0.5rem 1rem;
     border-radius: 0.5rem;
     font-size: 1rem;
@@ -361,6 +352,33 @@ main {
 .transaction-header .amount {
     background-color: rgba(255, 255, 255, 0.05);
     color: rgba(255, 255, 255, 0.7);
+}
+
+/* Estilo para a descrição */
+.transaction-item .description {
+    justify-content: flex-start;
+    min-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Estilo para a categoria */
+.transaction-item .category {
+    justify-content: flex-start;
+    min-width: 150px;
+}
+
+/* Estilo para a data */
+.transaction-item .date {
+    justify-content: flex-end;
+    min-width: 150px;
+}
+
+/* Estilo para a forma de pagamento */
+.transaction-item .payment-method {
+    justify-content: flex-end;
+    min-width: 150px;
 }
 
 .transaction-item {
