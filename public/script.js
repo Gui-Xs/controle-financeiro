@@ -512,7 +512,6 @@ async function updateTransactionsTable() {
                         <span class="description">Descrição</span>
                         <span class="amount">Valor</span>
                         <span class="category">Categoria</span>
-                        <span class="type">Tipo</span>
                         <span class="date">Data</span>
                         <span class="payment-method">Forma de Pagamento</span>
                     </div>
@@ -529,10 +528,22 @@ async function updateTransactionsTable() {
                     const detailsDiv = document.createElement('div');
                     detailsDiv.className = 'transaction-details';
                     detailsDiv.innerHTML = `
+                        <span class="description">${transaction.description.replace('despesa', '')}</span>
+                        <span class="amount">${formatCurrency(transaction.amount)}</span>
+                        <span class="category" style="color: ${categoryColors[transaction.category]}">${transaction.category}</span>
+                        <span class="date">${formatDate(transaction.date)}</span>
+                        <span class="payment-method">${transaction.paymentMethod}</span>
+                    `;
+                    const listItem = document.createElement('li');
+                    listItem.className = 'transaction-item';
+                    
+                    // Criar elementos separadamente para melhor manipulação
+                    const detailsDiv = document.createElement('div');
+                    detailsDiv.className = 'transaction-details';
+                    detailsDiv.innerHTML = `
                         <span class="description">${transaction.description}</span>
                         <span class="amount">${formatCurrency(transaction.amount)}</span>
                         <span class="category" style="color: ${categoryColors[transaction.category]}">${transaction.category}</span>
-                        <span class="type">${transaction.type}</span>
                         <span class="date">${formatDate(transaction.date)}</span>
                         <span class="payment-method">${transaction.paymentMethod}</span>
                     `;
