@@ -174,9 +174,38 @@ async function initializeDatabase() {
         db = new Dexie('controleFinanceiro');
         
         // Definir a versão mais recente do banco
-        db.version(2).stores({
-            transactions: '++id, date, description, amount, type, category, paymentMethod, installments, isRecurring, frequency, endDate'
+        db.version(3).stores({
+            transactions: '++id, date, description, amount, type, category, paymentMethod, frequency, endDate, timestamp'
         });
+
+        // Garantir que o banco seja inicializado corretamente
+        await db.open();
+        console.log('Banco de dados inicializado com sucesso');
+
+        // Verificar se já existem transações
+        const existingTransactions = await db.transactions.toArray();
+        console.log('Transações existentes:', existingTransactions.length);
+
+        // Se não existir nenhuma transação, criar uma transação inicial de exemplo
+        if (existingTransactions.length === 0) {
+            try {
+                const initialTransaction = {
+                    description: 'Transação inicial',
+                    amount: 100.00,
+                    category: 'alimentacao',
+                    type: 'despesa',
+                    date: new Date().toISOString().split('T')[0],
+                    paymentMethod: 'dinheiro',
+                    frequency: '',
+                    endDate: '',
+                    timestamp: Date.now()
+                };
+                await db.transactions.add(initialTransaction);
+                console.log('Transação inicial criada com sucesso');
+            } catch (error) {
+                console.error('Erro ao criar transação inicial:', error);
+            }
+        }
         
         // Garantir que o banco seja inicializado
         await db.open();
@@ -188,6 +217,11 @@ async function initializeDatabase() {
     } catch (error) {
         console.error('Erro ao inicializar banco de dados:', error);
         throw error;
+    } finally {
+        // Garantir que o banco seja fechado se houver erro
+        if (db && !db.isOpen()) {
+            await db.close();
+        }
     }
 }
 
