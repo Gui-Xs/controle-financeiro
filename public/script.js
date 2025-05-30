@@ -524,19 +524,30 @@ async function updateTransactionsTable() {
                     console.log('Adicionando transação à lista:', transaction);
                     const listItem = document.createElement('li');
                     listItem.className = 'transaction-item';
-                    listItem.innerHTML = `
-                        <div class="transaction-details">
-                            <span class="description">${transaction.description}</span>
-                            <span class="amount">${formatCurrency(transaction.amount)}</span>
-                            <span class="category" style="color: ${categoryColors[transaction.category]}">${transaction.category}</span>
-                            <span class="type">${transaction.type}</span>
-                            <span class="date">${formatDate(transaction.date)}</span>
-                            <span class="payment-method">${transaction.paymentMethod}</span>
-                        </div>
-                        <button onclick="deleteTransaction('${transaction.id}')" class="delete-btn">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                    
+                    // Criar elementos separadamente para melhor manipulação
+                    const detailsDiv = document.createElement('div');
+                    detailsDiv.className = 'transaction-details';
+                    detailsDiv.innerHTML = `
+                        <span class="description">${transaction.description}</span>
+                        <span class="amount">${formatCurrency(transaction.amount)}</span>
+                        <span class="category" style="color: ${categoryColors[transaction.category]}">${transaction.category}</span>
+                        <span class="type">${transaction.type}</span>
+                        <span class="date">${formatDate(transaction.date)}</span>
+                        <span class="payment-method">${transaction.paymentMethod}</span>
                     `;
+
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'delete-btn';
+                    deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+                    
+                    // Adicionar evento de clique usando addEventListener
+                    deleteBtn.addEventListener('click', async () => {
+                        await deleteTransaction(transaction.id);
+                    });
+
+                    listItem.appendChild(detailsDiv);
+                    listItem.appendChild(deleteBtn);
                     transactionsList.appendChild(listItem);
                 });
 
