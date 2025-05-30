@@ -153,75 +153,30 @@ function setupTransactionForm() {
             }
         });
         console.log('Evento de submit adicionado ao formulário');
-    } else {
-        console.log('Formulário não encontrado inicialmente');
-    }
-}
-
 // Função para inicializar o banco de dados
-let db = null;
-
 async function initializeDatabase() {
     try {
-        if (db) {
-            console.log('Banco de dados já inicializado');
-            return db;
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            console.error('Usuário não está logado');
+            return null;
         }
 
-        console.log('Iniciando inicialização do banco de dados...');
+        // Referência para o Firestore
+        const firestore = firebase.firestore();
+        const userRef = firestore.collection('users').doc(user.uid);
         
-        // Inicializar Dexie
-        db = new Dexie('controleFinanceiro');
-        
-        // Definir a versão mais recente do banco
-        db.version(3).stores({
-            transactions: '++id, date, description, amount, type, category, paymentMethod, frequency, endDate, timestamp'
-        });
+        // Garantir que o documento do usuário exista
+        await userRef.set({
+            transactions: [],
+            lastSync: Date.now()
+        }, { merge: true });
 
-        // Garantir que o banco seja inicializado corretamente
-        await db.open();
-        console.log('Banco de dados inicializado com sucesso');
-
-        // Verificar se já existem transações
-        const existingTransactions = await db.transactions.toArray();
-        console.log('Transações existentes:', existingTransactions.length);
-
-        // Se não existir nenhuma transação, criar uma transação inicial de exemplo
-        if (existingTransactions.length === 0) {
-            try {
-                const initialTransaction = {
-                    description: 'Transação inicial',
-                    amount: 100.00,
-                    category: 'alimentacao',
-                    type: 'despesa',
-                    date: new Date().toISOString().split('T')[0],
-                    paymentMethod: 'dinheiro',
-                    frequency: '',
-                    endDate: '',
-                    timestamp: Date.now()
-                };
-                await db.transactions.add(initialTransaction);
-                console.log('Transação inicial criada com sucesso');
-            } catch (error) {
-                console.error('Erro ao criar transação inicial:', error);
-            }
-        }
-        
-        // Garantir que o banco seja inicializado
-        await db.open();
-        console.log('Banco de dados inicializado com sucesso');
-        
-        // Exportar o banco de dados para uso global
-        window.db = db;
-        return db;
+        console.log('Firebase inicializado com sucesso');
+        return userRef;
     } catch (error) {
-        console.error('Erro ao inicializar banco de dados:', error);
+        console.error('Erro ao inicializar Firebase:', error);
         throw error;
-    } finally {
-        // Garantir que o banco seja fechado se houver erro
-        if (db && !db.isOpen()) {
-            await db.close();
-        }
     }
 }
 
@@ -236,14 +191,21 @@ async function exportToPDF() {
         // Aguardar a inicialização do jsPDF
         await new Promise((resolve) => setTimeout(resolve, 100));
 
-        if (!db) {
-            await initializeDatabase();
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            console.error('Usuário não está logado');
+            return;
         }
 
-        const transactions = await db.transactions.toArray();
-        if (transactions.length === 0) {
-            alert('Não há transações para exportar!');
-            return;
+        const firestore = firebase.firestore();
+        const userRef = firestore.collection('users').doc(user.uid);
+        
+        // Obter transações do Firebase
+        const doc = await userRef.get();
+        let transactions = [];
+        if (doc.exists) {
+            const data = doc.data();
+            transactions = data.transactions || [];
         }
 
         // Criar PDF
@@ -315,15 +277,32 @@ async function importJSON(event) {
                 const jsonString = e.target.result;
                 const transactions = JSON.parse(jsonString);
                 
-                if (!db) {
-                    await initializeDatabase();
+                const user = firebase.auth().currentUser;
+                if (!user) {
+                    console.error('Usuário não está logado');
+                    return;
                 }
+
+                const firestore = firebase.firestore();
+                const userRef = firestore.collection('users').doc(user.uid);
                 
-                // Adicionar transações
-                for (const transaction of transactions) {
-                    await db.transactions.add(transaction);
+                // Obter transações existentes
+                const doc = await userRef.get();
+                let currentTransactions = [];
+                if (doc.exists) {
+                    const data = doc.data();
+                    currentTransactions = data.transactions || [];
                 }
-                
+
+                // Adicionar novas transações
+                const updatedTransactions = [...currentTransactions, ...transactions];
+
+                // Atualizar o documento
+                await userRef.set({
+                    transactions: updatedTransactions,
+                    lastSync: Date.now()
+                }, { merge: true });
+
                 // Atualizar tabela
                 await updateTransactionsTable();
                 
@@ -416,111 +395,39 @@ async function importReceipt(event) {
         console.log('Dados extraídos:', transactionData);
         
         // Adicionar a transação
-        if (!db) {
-            await initializeDatabase();
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            console.error('Usuário não está logado');
+            return;
         }
+
+        const firestore = firebase.firestore();
+        const userRef = firestore.collection('users').doc(user.uid);
         
-        await db.transactions.add(transactionData);
+        // Obter transações existentes
+        const doc = await userRef.get();
+        let currentTransactions = [];
+        if (doc.exists) {
+            const data = doc.data();
+            currentTransactions = data.transactions || [];
+        }
+
+        // Adicionar nova transação
+        const updatedTransactions = [...currentTransactions, transactionData];
+
+        // Atualizar o documento
+        await userRef.set({
+            transactions: updatedTransactions,
+            lastSync: Date.now()
+        }, { merge: true });
+
+        // Atualizar tabela
         await updateTransactionsTable();
         
         alert('Comprovante importado com sucesso!');
     } catch (error) {
         console.error('Erro ao importar comprovante:', error);
         alert('Erro ao importar comprovante. Por favor, tente novamente.');
-    }
-}
-
-// Função para importar comprovante
-async function importReceipt(event) {
-    try {
-        const file = event.target.files[0];
-        if (!file) return;
-        
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            try {
-                // Processar imagem com Tesseract
-                const text = await Tesseract.recognize(
-                    e.target.result,
-                    'por',
-                    {
-                        logger: m => console.log(m)
-                    }
-                );
-                
-                const content = text.data.text;
-                const transactions = parseReceiptContent(content);
-                
-                if (!db) {
-                    await initializeDatabase();
-                }
-                
-                // Adicionar transações
-                for (const transaction of transactions) {
-                    await db.transactions.add(transaction);
-                }
-                
-                // Atualizar tabela
-                await updateTransactionsTable();
-                
-                alert('Transações importadas com sucesso!');
-            } catch (error) {
-                console.error('Erro ao processar comprovante:', error);
-                alert('Erro ao processar o comprovante. Por favor, tente novamente.');
-            }
-        };
-        reader.readAsArrayBuffer(file);
-    } catch (error) {
-        console.error('Erro ao importar comprovante:', error);
-        alert('Erro ao importar comprovante. Por favor, tente novamente.');
-    }
-}
-
-// Função para parsear conteúdo do comprovante
-function parseReceiptContent(text) {
-    const transactions = [];
-    const lines = text.split('\n');
-    
-    // Procurar por padrões comuns em comprovantes
-    let currentDate;
-    let currentDescription;
-    let currentAmount;
-    
-    for (const line of lines) {
-        // Tentar encontrar data
-        const dateMatch = line.match(/(\d{2}\/\d{2}\/\d{4})/);
-        if (dateMatch) {
-            currentDate = new Date(dateMatch[1]);
-            continue;
-        }
-        
-        // Tentar encontrar valor
-        const amountMatch = line.match(/(\d+\.?\d*),\d{2}/);
-        if (amountMatch) {
-            currentAmount = parseFloat(amountMatch[1].replace(',', '.'));
-            continue;
-        }
-        
-        // Se encontrou data e valor, criar transação
-        if (currentDate && currentAmount) {
-            transactions.push({
-                date: currentDate.getTime(),
-                description: currentDescription || 'Comprovante',
-                amount: currentAmount,
-                type: 'despesa',
-                category: 'importado',
-                paymentMethod: 'importado',
-                installments: 1,
-                isRecurring: false,
-                frequency: '',
-                endDate: null
-            });
-            
-            // Resetar valores
-            currentDate = null;
-            currentAmount = null;
-            currentDescription = null;
-        }
     }
 }
 
@@ -532,10 +439,6 @@ async function syncTransactionsWithFirebase() {
             console.error('Usuário não está logado');
             return;
         }
-
-        // Obter todas as transações do banco local
-        const localTransactions = await db.transactions.toArray();
-        console.log('Sincronizando transações:', localTransactions);
 
         // Referência para o Firestore
         const firestore = firebase.firestore();
@@ -549,40 +452,9 @@ async function syncTransactionsWithFirebase() {
             firebaseTransactions = data.transactions || [];
         }
 
-        // Filtrar transações novas (que não existem no Firebase) usando ID
-        const newTransactions = localTransactions.filter(localTx => {
-            return !firebaseTransactions.some(firebaseTx => 
-                firebaseTx.id === localTx.id
-            );
-        });
-
-        console.log('Transações novas para sincronizar:', newTransactions);
-
-        // Se houver transações novas, adicionar ao Firebase
-        if (newTransactions.length > 0) {
-            // Primeiro obter todas as transações do Firebase
-            const currentFirebaseTx = await userRef.get();
-            let currentTransactions = [];
-            if (currentFirebaseTx.exists) {
-                const data = currentFirebaseTx.data();
-                currentTransactions = data.transactions || [];
-            }
-
-            // Adicionar as novas transações
-            const updatedTransactions = [...currentTransactions, ...newTransactions];
-
-            // Atualizar o documento
-            await userRef.set({
-                transactions: updatedTransactions,
-                lastSync: Date.now()
-            }, { merge: true });
-
-            console.log('Transações novas sincronizadas com sucesso com o Firebase');
-        }
-
-        // Atualizar a tabela após sincronizar com Firebase
+        // Atualizar tabela
         await updateTransactionsTable();
-
+        
         console.log('Sincronização concluída com sucesso');
     } catch (error) {
         console.error('Erro ao sincronizar com Firebase:', error);
@@ -609,13 +481,6 @@ async function loadTransactionsFromFirebase() {
         if (doc.exists) {
             const data = doc.data();
             if (data.transactions && Array.isArray(data.transactions)) {
-                // Limpar banco local
-                await db.transactions.clear();
-                
-                // Adicionar todas as transações
-                await db.transactions.bulkAdd(data.transactions);
-                console.log('Transações carregadas do Firebase:', data.transactions.length);
-                
                 // Atualizar tabela
                 await updateTransactionsTable();
             }
@@ -680,23 +545,35 @@ async function addTransaction(e) {
             timestamp: Date.now()
         };
 
-        // Verificar se o banco de dados está inicializado
-        if (!db) {
-            await initializeDatabase();
+        // Referência para o Firestore
+        const firestore = firebase.firestore();
+        const userRef = firestore.collection('users').doc(user.uid);
+        
+        // Obter transações existentes
+        const doc = await userRef.get();
+        let currentTransactions = [];
+        if (doc.exists) {
+            const data = doc.data();
+            currentTransactions = data.transactions || [];
         }
 
-        // Adicionar a transação
-        const result = await db.transactions.add(transaction);
-        console.log('Transação salva com sucesso:', result);
-        
-        // Sincronizar com Firebase
-        await syncTransactionsWithFirebase();
-        
+        // Adicionar nova transação
+        const updatedTransactions = [...currentTransactions, transaction];
+
+        // Atualizar o documento
+        await userRef.set({
+            transactions: updatedTransactions,
+            lastSync: Date.now()
+        }, { merge: true });
+
         // Limpar o formulário
         document.getElementById('transactionForm').reset();
         
+        // Atualizar tabela
+        await updateTransactionsTable();
+        
         // Mostrar mensagem de sucesso
-        alert('Transação adicionada e sincronizada com sucesso!');
+        alert('Transação adicionada com sucesso!');
     } catch (error) {
         console.error('Erro ao adicionar transação:', error);
         alert('Erro ao adicionar transação. Por favor, tente novamente.');
@@ -736,105 +613,55 @@ if (form) {
 
 // Função para atualizar a tabela de transações
 async function updateTransactionsTable() {
-    console.log('Atualizando tabela de transações...');
-    
     try {
-        if (!db) {
-            console.log('Inicializando banco de dados...');
-            await initializeDatabase();
+        // Limpar a tabela existente
+        const tableBody = document.getElementById('transactionsBody');
+        if (tableBody) {
+            tableBody.innerHTML = '';
         }
 
-        console.log('Buscando transações...');
-        const transactionsList = document.getElementById('transactionsList');
-        if (transactionsList) {
-            transactionsList.innerHTML = '';
+        // Referência para o Firestore
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            console.error('Usuário não está logado');
+            return;
         }
 
-        // Obter todas as transações
-        const transactions = await db.transactions.toArray();
-        const categoryFilter = document.getElementById('categoryFilter').value;
+        const firestore = firebase.firestore();
+        const userRef = firestore.collection('users').doc(user.uid);
+        
+        // Obter transações do Firebase
+        const doc = await userRef.get();
+        let transactions = [];
+        if (doc.exists) {
+            const data = doc.data();
+            transactions = data.transactions || [];
+        }
+        console.log('Atualizando tabela com', transactions.length, 'transações do Firebase');
 
-        // Filtrar transações por categoria
-        const filteredTransactions = categoryFilter === 'todas' 
-            ? transactions 
-            : transactions.filter(t => t.category === categoryFilter);
-
-        // Ordenar transações por timestamp e data (mais recentes primeiro)
-        filteredTransactions.sort((a, b) => {
-            // Verificar se as transações são iguais (evitar duplicações)
-            if (a.id === b.id) {
-                return 0;
-            }
-            
-            // Primeiro usar timestamp se existir
-            if (a.timestamp && b.timestamp) {
-                return b.timestamp - a.timestamp;
-            }
-            
-            // Se não tiver timestamp, usar data
-            const dateA = new Date(a.date);
-            const dateB = new Date(b.date);
-            
-            // Verificar se as datas são válidas
-            const validDateA = !isNaN(dateA.getTime()) ? dateA : new Date();
-            const validDateB = !isNaN(dateB.getTime()) ? dateB : new Date();
-            
-            // Se as datas forem iguais, usar timestamp como critério de desempate
-            if (validDateA.getTime() === validDateB.getTime()) {
-                return (b.timestamp || Date.now()) - (a.timestamp || Date.now());
-            }
-            
-            return validDateB - validDateA;
-        });
+        // Ordenar transações por data (mais recentes primeiro)
+        const sortedTransactions = transactions.sort((a, b) => b.timestamp - a.timestamp);
 
         // Adicionar cada transação à tabela
-        filteredTransactions.forEach(transaction => {
-            const li = document.createElement('li');
-            li.className = 'transaction-item';
-            
-            // Garantir que sempre tenha uma data e formate
-            const date = transaction.date || new Date().toISOString();
-            const formattedDate = formatDate(date);
-            
-            // Verificar se a data está no formato correto
-            if (!formattedDate || formattedDate.includes('undefined')) {
-                console.log('Data inválida encontrada:', transaction.date);
-                return; // Pular transações com data inválida
-            }
-            
-            const amount = formatCurrency(transaction.amount);
-            const type = transaction.type === 'receita' ? 'Receita' : 'Despesa';
-            
-            const categoryIcon = getCategoryIcon(transaction.category);
-            li.innerHTML = `
-                <div class="transaction-info">
-                    <span class="date">${formattedDate}</span>
-                    <span class="description">${transaction.description}</span>
-                    <span class="category-icon">
-                        <i class="fas fa-${categoryIcon}"></i>
-                    </span>
-                    <span class="category">${transaction.category}</span>
-                </div>
-                <div class="transaction-actions">
-                    <span class="amount ${transaction.type}">${amount}</span>
-                    <button class="edit-btn" onclick="editTransaction(${transaction.id})">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="delete-btn" onclick="deleteTransaction(${transaction.id})">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
+        sortedTransactions.forEach(transaction => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${formatDate(transaction.date)}</td>
+                <td>${transaction.description}</td>
+                <td style="text-align: right; padding-right: 10px;">${formatCurrency(transaction.amount)}</td>
+                <td>${getCategoryIcon(transaction.category)}</td>
+                <td>${transaction.type}</td>
+                <td>${transaction.paymentMethod}</td>
+                <td>
+                    <button class="btn btn-danger btn-sm" onclick="deleteTransaction('${transaction.id}')">Excluir</button>
+                </td>
             `;
-            
-            // Adicionar o ID da transação como atributo do elemento
-            li.setAttribute('data-id', transaction.id);
-            
-            transactionsList.appendChild(li);
+            tableBody.appendChild(row);
         });
 
-        // Atualizar totais
-        updateTotals();
-        
+        // Atualizar os totais
+        await updateTotals();
+
         console.log('Tabela atualizada com sucesso!');
     } catch (error) {
         console.error('Erro ao atualizar tabela:', error);
@@ -843,19 +670,46 @@ async function updateTransactionsTable() {
 }
 
 // Função para deletar transação
-async function deleteTransaction(id) {
-    if (confirm('Tem certeza que deseja deletar esta transação?')) {
-        try {
-            if (!db) {
-                await initializeDatabase();
-            }
-            
-            await db.transactions.delete(id);
-            updateTransactionsTable();
-        } catch (error) {
-            console.error('Erro ao deletar transação:', error);
-            alert('Erro ao deletar transação. Por favor, tente novamente.');
+async function deleteTransaction(transactionId) {
+    if (!confirm('Tem certeza que deseja deletar esta transação?')) {
+        return;
+    }
+
+    try {
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            console.error('Usuário não está logado');
+            alert('Por favor, faça login primeiro.');
+            return;
         }
+
+        const firestore = firebase.firestore();
+        const userRef = firestore.collection('users').doc(user.uid);
+        
+        // Obter transações existentes
+        const doc = await userRef.get();
+        let currentTransactions = [];
+        if (doc.exists) {
+            const data = doc.data();
+            currentTransactions = data.transactions || [];
+        }
+
+        // Remover a transação
+        const updatedTransactions = currentTransactions.filter(tx => tx.id !== transactionId);
+
+        // Atualizar o documento
+        await userRef.set({
+            transactions: updatedTransactions,
+            lastSync: Date.now()
+        }, { merge: true });
+
+        // Atualizar tabela
+        await updateTransactionsTable();
+        
+        alert('Transação deletada com sucesso!');
+    } catch (error) {
+        console.error('Erro ao deletar transação:', error);
+        alert('Erro ao deletar transação. Por favor, tente novamente.');
     }
 }
 
