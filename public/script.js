@@ -200,8 +200,7 @@ async function addTransaction(e) {
     }
 }
 
-// Inicializar Auth e Firestore usando as referências do firebase.js
-const auth = window.auth;
+// Usando as referências do firebase.js
 const db = window.db;
 
 // Testar conexão com o Firestore
