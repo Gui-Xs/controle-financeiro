@@ -186,64 +186,23 @@ const db = app.firestore();
 // Inicializar Auth
 const auth = app.auth();
 
-// Adicionar evento de submit ao formulário
-document.addEventListener('DOMContentLoaded', () => {
-    const form = document.getElementById('transactionForm');
-    if (form) {
-        form.addEventListener('submit', addTransaction);
-    }
-});
-
-// Adicionar evento de submit ao formulário
-document.addEventListener('DOMContentLoaded', () => {
-    const form = document.getElementById('transactionForm');
-    if (form) {
-        form.addEventListener('submit', addTransaction);
-    }
-});
-
-// Adicionar evento de submit quando o conteúdo principal for mostrado
+// Adicionar evento de submit ao formulário quando o DOM estiver pronto
 document.addEventListener('DOMContentLoaded', () => {
     const mainContent = document.getElementById('mainContent');
-    if (mainContent.style.display === 'block') {
-        const form = document.getElementById('transactionForm');
-        if (form) {
-            form.addEventListener('submit', async (e) => {
-                if (window.isSubmitting) return;
-                
-                e.preventDefault();
-                window.isSubmitting = true;
-                try {
-                    await window.addTransaction(e);
-                    window.isSubmitting = false;
-                } catch (error) {
-                    console.error('Erro ao processar transação:', error);
-                    alert('Erro ao processar transação. Por favor, tente novamente.');
-                    window.isSubmitting = false;
-                }
-            });
-        }
+    const form = document.getElementById('transactionForm');
+
+    // Se o conteúdo principal já estiver visível
+    if (mainContent.style.display === 'block' && form) {
+        form.addEventListener('submit', addTransaction);
     } else {
+        // Se não estiver visível, esperamos pela mutação
         const observer = new MutationObserver((mutations) => {
             mutations.forEach(mutation => {
                 if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
                     if (mainContent.style.display === 'block') {
                         const form = document.getElementById('transactionForm');
                         if (form) {
-                            form.addEventListener('submit', async (e) => {
-                                if (window.isSubmitting) return;
-                                
-                                e.preventDefault();
-                                window.isSubmitting = true;
-                                try {
-                                    await window.addTransaction(e);
-                                    window.isSubmitting = false;
-                                } catch (error) {
-                                    console.error('Erro ao processar transação:', error);
-                                    alert('Erro ao processar transação. Por favor, tente novamente.');
-                                    window.isSubmitting = false;
-                                }
-                            });
+                            form.addEventListener('submit', addTransaction);
                         }
                         observer.disconnect();
                     }
@@ -253,6 +212,9 @@ document.addEventListener('DOMContentLoaded', () => {
         observer.observe(mainContent, { attributes: true });
     }
 });
+
+// Exportar a função addTransaction para uso global
+window.addTransaction = addTransaction;
 
 // Função para exportar PDF
 async function exportToPDF() {
