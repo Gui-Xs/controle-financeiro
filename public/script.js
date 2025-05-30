@@ -1,15 +1,5 @@
-// Inicializar Firebase
-const firebaseConfig = {
-    apiKey: "AIzaSyA4iBJU8fzFXX0ShQX_Wg6n4TK4vwM2Mh0",
-    authDomain: "controle-financeiro-9d7c4.firebaseapp.com",
-    projectId: "controle-financeiro-9d7c4",
-    storageBucket: "controle-financeiro-9d7c4.firebasestorage.app",
-    messagingSenderId: "698161065367",
-    appId: "1:698161065367:web:8ddea9ba6dcb1b723c68d2"
-};
-
-// Inicializar Firebase
-firebase.initializeApp(firebaseConfig);
+// Inicializar Firebase usando a configuração do firebase.js
+firebase.initializeApp(window.firebaseConfig);
 
 // Funções auxiliares
 function formatCurrency(value) {
