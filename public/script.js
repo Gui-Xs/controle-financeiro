@@ -732,17 +732,5 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-// Exportar funções globais
-window.addTransaction = addTransaction;
-window.exportToPDF = exportToPDF;
-window.importJSON = importJSON;
-window.importReceipt = importReceipt;
-window.syncTransactionsWithFirebase = syncTransactionsWithFirebase;
-window.updateTransactionsTable = updateTransactionsTable;
-window.deleteTransaction = deleteTransaction;
-window.updateTotals = updateTotals;
-window.updateChart = updateChart;
-window.loadTransactionsFromFirebase = loadTransactionsFromFirebase;
-
 // Fim do script
 console.log('Script carregado com sucesso!');
