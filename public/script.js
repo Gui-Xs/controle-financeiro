@@ -218,6 +218,8 @@ document.addEventListener('DOMContentLoaded', () => {
         observer.observe(mainContent, { attributes: true });
     }
 });
+document.removeEventListener('DOMContentLoaded', () => {}, false);
+document.removeEventListener('DOMContentLoaded', () => {}, false);
 // Função para inicializar o banco de dados
 async function initializeDatabase() {
     try {
