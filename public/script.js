@@ -83,7 +83,7 @@ function formatDate(date) {
 window.isSubmitting = false;
 
 // Função para adicionar transação
-window.addTransaction = async function(e) {
+async function addTransaction(e) {
     if (window.isSubmitting) return;
     
     e.preventDefault();
@@ -165,7 +165,42 @@ window.addTransaction = async function(e) {
         alert('Erro ao adicionar transação. Por favor, verifique se você está conectado à internet e tente novamente.');
         window.isSubmitting = false;
     }
+}
+
+// Inicializar Firebase
+const firebaseConfig = {
+    apiKey: "AIzaSyA4iBJU8fzFXX0ShQX_Wg6n4TK4vwM2Mh0",
+    authDomain: "controle-financeiro-9d7c4.firebaseapp.com",
+    projectId: "controle-financeiro-9d7c4",
+    storageBucket: "controle-financeiro-9d7c4.firebasestorage.app",
+    messagingSenderId: "698161065367",
+    appId: "1:698161065367:web:8ddea9ba6dcb1b723c68d2"
 };
+
+// Inicializar Firebase
+const app = initializeApp(firebaseConfig);
+
+// Inicializar Firestore
+const db = app.firestore();
+
+// Inicializar Auth
+const auth = app.auth();
+
+// Adicionar evento de submit ao formulário
+document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('transactionForm');
+    if (form) {
+        form.addEventListener('submit', addTransaction);
+    }
+});
+
+// Adicionar evento de submit ao formulário
+document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('transactionForm');
+    if (form) {
+        form.addEventListener('submit', addTransaction);
+    }
+});
 
 // Adicionar evento de submit quando o conteúdo principal for mostrado
 document.addEventListener('DOMContentLoaded', () => {
