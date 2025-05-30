@@ -151,6 +151,8 @@ async function addTransaction(e) {
             timestamp: Date.now()
         };
 
+        console.log('Transação a ser adicionada:', transaction);
+
         // Referência para o Firestore
         const userRef = db.collection('users').doc(user.uid);
         
@@ -159,6 +161,8 @@ async function addTransaction(e) {
             transactions: firebase.firestore.FieldValue.arrayUnion(transaction),
             lastSync: Date.now()
         }, { merge: true });
+
+        console.log('Transação adicionada com sucesso no Firestore');
 
         // Limpar o formulário
         document.getElementById('transactionForm').reset();
@@ -169,8 +173,12 @@ async function addTransaction(e) {
         alert('Transação adicionada com sucesso!');
         window.isSubmitting = false;
     } catch (error) {
-        console.error('Erro ao adicionar transação:', error);
-        alert('Erro ao adicionar transação. Por favor, verifique se você está conectado à internet e tente novamente.');
+        console.error('Erro detalhado ao adicionar transação:', error);
+        if (error.message) {
+            alert(`Erro: ${error.message}`);
+        } else {
+            alert('Erro ao adicionar transação. Por favor, verifique se você está conectado à internet e tente novamente.');
+        }
         window.isSubmitting = false;
     }
 }
