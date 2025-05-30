@@ -604,23 +604,40 @@ async function updateTotals() {
             // Calcular totais
             let receitas = 0;
             let despesas = 0;
+            let despesasCartao = 0;
 
             transactions.forEach(transaction => {
                 if (transaction.type === 'receita') {
                     receitas += transaction.amount;
                 } else {
                     despesas += transaction.amount;
+                    if (transaction.paymentMethod === 'cartao_credito') {
+                        despesasCartao += transaction.amount;
+                    }
                 }
             });
 
+            // Calcular saldo
             const saldo = receitas - despesas;
 
-            // Atualizar elementos HTML
-            document.getElementById('totalReceitas').textContent = formatCurrency(receitas);
-            document.getElementById('totalDespesas').textContent = formatCurrency(despesas);
-            document.getElementById('saldo').textContent = formatCurrency(saldo);
+            // Verificar se os elementos existem antes de atualizar
+            const totalReceitas = document.getElementById('totalReceitas');
+            const totalDespesas = document.getElementById('totalDespesas');
+            const totalCartao = document.getElementById('totalCartao');
+            const saldoTotal = document.getElementById('saldoTotal');
 
-            return { receitas, despesas, saldo };
+            if (totalReceitas && totalDespesas && totalCartao && saldoTotal) {
+                // Atualizar elementos
+                totalReceitas.textContent = formatCurrency(receitas);
+                totalDespesas.textContent = formatCurrency(despesas);
+                totalCartao.textContent = formatCurrency(despesasCartao);
+                saldoTotal.textContent = formatCurrency(saldo);
+                console.log('Totais atualizados com sucesso');
+            } else {
+                console.error('Elementos para totais não encontrados');
+            }
+        } else {
+            console.error('Documento do usuário não encontrado');
         }
     } catch (error) {
         console.error('Erro ao atualizar totais:', error);
@@ -649,35 +666,41 @@ async function updateChart() {
             const transactions = data.transactions || [];
 
             // Filtrar apenas despesas
-            const despesas = transactions.filter(t => t.type === 'despesa');
+            const despesas = transactions.filter(tx => tx.type === 'despesa');
 
             // Agrupar por categoria
             const categorias = {};
-            despesas.forEach(t => {
-                if (!categorias[t.category]) {
-                    categorias[t.category] = 0;
+            despesas.forEach(tx => {
+                if (categorias[tx.category]) {
+                    categorias[tx.category] += tx.amount;
+                } else {
+                    categorias[tx.category] = tx.amount;
                 }
-                categorias[t.category] += t.amount;
             });
 
             // Criar dados para o gráfico
             const labels = Object.keys(categorias);
             const values = Object.values(categorias);
 
-            // Atualizar gráfico
-            if (window.chart) {
-                window.chart.destroy();
+            // Verificar se o canvas existe antes de criar o gráfico
+            const canvas = document.getElementById('chartCanvas');
+            if (!canvas) {
+                console.error('Canvas do gráfico não encontrado');
+                return;
             }
 
-            const ctx = document.getElementById('chart').getContext('2d');
-            window.chart = new Chart(ctx, {
-                type: 'doughnut',
+            // Atualizar gráfico
+            const ctx = canvas.getContext('2d');
+            if (window.myChart) {
+                window.myChart.destroy();
+            }
+            window.myChart = new Chart(ctx, {
+                type: 'pie',
                 data: {
                     labels: labels,
                     datasets: [{
                         data: values,
-                        backgroundColor: labels.map(cat => categoryColors[cat] || '#95A5A6'),
-                        borderWidth: 1
+                        backgroundColor: Object.values(categoryColors)
                     }]
                 },
                 options: {
@@ -685,15 +708,18 @@ async function updateChart() {
                     maintainAspectRatio: false,
                     plugins: {
                         legend: {
-                            position: 'bottom'
-                        },
-                        title: {
-                            display: true,
-                            text: 'Distribuição de Despesas por Categoria'
+                            position: 'bottom',
+                            labels: {
+                                color: '#ffffff'
+                            }
                         }
                     }
                 }
             });
+
+            console.log('Gráfico atualizado com sucesso');
+        } else {
+            console.error('Documento do usuário não encontrado');
         }
     } catch (error) {
         console.error('Erro ao atualizar gráfico:', error);
