@@ -549,12 +549,10 @@ async function syncTransactionsWithFirebase() {
             firebaseTransactions = data.transactions || [];
         }
 
-        // Filtrar transações novas (que não existem no Firebase)
+        // Filtrar transações novas (que não existem no Firebase) usando ID
         const newTransactions = localTransactions.filter(localTx => {
             return !firebaseTransactions.some(firebaseTx => 
-                firebaseTx.description === localTx.description &&
-                firebaseTx.amount === localTx.amount &&
-                firebaseTx.date === localTx.date
+                firebaseTx.id === localTx.id
             );
         });
 
@@ -668,10 +666,11 @@ async function addTransaction(e) {
             date = new Date().toISOString().split('T')[0];
         }
 
-        // Criar objeto de transação
+        // Criar objeto de transação com ID único
         const transaction = {
+            id: Date.now() + Math.random().toString(36).substr(2, 9),
             description,
-            amount: Math.abs(amount), // Garantir que o valor seja sempre positivo
+            amount: Math.abs(amount),
             category,
             type,
             date,
@@ -1092,12 +1091,10 @@ async function loadTransactionsFromFirebase() {
                 // Adicionar novas transações ao banco local
                 const localTransactions = await db.transactions.toArray();
                 
-                // Filtrar transações novas (que não existem localmente)
+                // Filtrar transações novas (que não existem localmente) usando ID
                 const newTransactions = data.transactions.filter(firebaseTx => {
                     return !localTransactions.some(localTx => 
-                        localTx.description === firebaseTx.description &&
-                        localTx.amount === firebaseTx.amount &&
-                        localTx.date === firebaseTx.date
+                        localTx.id === firebaseTx.id
                     );
                 });
 
