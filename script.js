@@ -472,20 +472,26 @@ async function addTransaction(e) {
         // Se não houver data ou for inválida, usar a data atual
         let date = dateInput;
         if (!date || date.includes('undefined') || date.includes('NaN')) {
-            date = new Date().toISOString();
+            date = new Date().toISOString().split('T')[0];
         }
 
         // Garantir que a data esteja sempre no formato YYYY-MM-DD
         if (typeof date === 'string') {
             // Remover qualquer caractere inválido
-            date = date.replace(/[^\d-]/g, '');
-            // Se ainda tiver mais de 10 caracteres, pegar os últimos 10
-            if (date.length > 10) {
-                date = date.slice(-10);
+            date = date.replace(/[\D]/g, '');
+            // Se tiver mais de 8 dígitos, pegar os últimos 8
+            if (date.length > 8) {
+                date = date.slice(-8);
             }
-            // Se tiver menos de 10 caracteres, usar data atual
-            if (date.length !== 10) {
+            // Se tiver menos de 8 dígitos, usar data atual
+            if (date.length !== 8) {
                 date = new Date().toISOString().split('T')[0];
+            } else {
+                // Formatar como YYYY-MM-DD
+                const year = date.slice(0, 4);
+                const month = date.slice(4, 6);
+                const day = date.slice(6, 8);
+                date = `${year}-${month}-${day}`;
             }
         }
 
@@ -500,8 +506,14 @@ async function addTransaction(e) {
             endDate: document.getElementById('endDate').value
         };
 
+        // Verificar se o banco de dados está inicializado
+        if (!db) {
+            await initializeDatabase();
+        }
+
         // Adicionar a transação
-        await db.transactions.add(transaction);
+        const result = await db.transactions.add(transaction);
+        console.log('Transação adicionada com ID:', result);
         
         // Atualizar a tabela
         await updateTransactionsTable();
