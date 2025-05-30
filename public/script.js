@@ -754,81 +754,6 @@ async function loadTransactionsFromFirebase() {
     }
 }
 
-// Função para atualizar a tabela de transações
-async function updateTransactionsTable() {
-    try {
-        // Limpar a tabela existente
-        const tableBody = document.getElementById('transactionsBody');
-        if (tableBody) {
-            tableBody.innerHTML = '';
-        }
-
-        // Referência para o Firestore
-        const user = firebase.auth().currentUser;
-        if (!user) {
-            console.error('Usuário não está logado');
-            return;
-        }
-
-        const firestore = firebase.firestore();
-        const userRef = firestore.collection('users').doc(user.uid);
-        
-        // Obter transações do Firebase
-        const userDoc = await userRef.get();
-        let transactions = [];
-        if (userDoc.exists) {
-            const data = userDoc.data();
-            transactions = data.transactions || [];
-        }
-        console.log('Atualizando tabela com', transactions.length, 'transações do Firebase');
-
-        // Ordenar transações por data (mais recentes primeiro)
-        const sortedTransactions = transactions.sort((a, b) => b.timestamp - a.timestamp);
-
-        // Aplicar filtros
-        const categoryFilter = document.getElementById('categoryFilter').value;
-        const monthFilter = document.getElementById('monthFilter').value;
-
-        const filteredTransactions = sortedTransactions.filter(tx => {
-            if (categoryFilter !== 'todas' && tx.category !== categoryFilter) {
-                return false;
-            }
-            if (monthFilter !== 'todos') {
-                const txDate = new Date(tx.date);
-                const filterDate = new Date(monthFilter);
-                return txDate.getMonth() === filterDate.getMonth() &&
-                       txDate.getFullYear() === filterDate.getFullYear();
-            }
-            return true;
-        });
-
-        // Adicionar cada transação à tabela
-        filteredTransactions.forEach(transaction => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${formatDate(transaction.date)}</td>
-                <td>${transaction.description}</td>
-                <td style="text-align: right; padding-right: 10px;">${formatCurrency(transaction.amount)}</td>
-                <td><i class="fas fa-${getCategoryIcon(transaction.category)}" style="color: ${categoryColors[transaction.category]}" title="${transaction.category}"></i></td>
-                <td>${transaction.type}</td>
-                <td>${transaction.paymentMethod}</td>
-                <td>
-                    <button class="btn btn-danger btn-sm" onclick="deleteTransaction('${transaction.id}')">Excluir</button>
-                </td>
-            `;
-            tableBody.appendChild(row);
-        });
-
-        // Atualizar os totais
-        await updateTotals();
-
-        console.log('Tabela atualizada com sucesso');
-    } catch (error) {
-        console.error('Erro ao atualizar tabela:', error);
-        alert('Erro ao atualizar tabela. Por favor, tente novamente.');
-    }
-}
-
 // Função para deletar transação
 async function deleteTransaction(id) {
     if (!confirm('Tem certeza que deseja deletar esta transação?')) {
@@ -1001,6 +926,8 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.href = '/login.html';
         }
     }
+});
+
 });
 
 ;
