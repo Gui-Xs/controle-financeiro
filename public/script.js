@@ -1,4 +1,470 @@
-// Função global para adicionar transação
+// Funções auxiliares
+function formatCurrency(value) {
+    return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+    }).format(value);
+}
+
+// Mapeamento de categorias para ícones e cores
+const categoryColors = {
+    'alimentacao': '#FF6B6B',  // Vermelho
+    'transporte': '#4ECDC4',   // Verde água
+    'moradia': '#FFEEAD',      // Amarelo claro
+    'saude': '#8892B0',        // Azul escuro
+    'educacao': '#FF9F1C',     // Laranja
+    'lazer': '#A8E6CF',        // Verde claro
+    'vestuario': '#FF6B81',    // Rosa
+    'tecnologia': '#45B7D1',   // Azul claro
+    'servicos': '#FF9B9B',     // Vermelho claro
+    'investimentos': '#9B59B6', // Roxo
+    'viagem': '#4ECDC4',       // Verde água
+    'presente': '#FF6B6B',     // Vermelho
+    'outros': '#95A5A6'        // Cinza
+};
+
+const categoryIcons = {
+    'alimentacao': 'utensils',
+    'transporte': 'car',
+    'moradia': 'home',
+    'saude': 'heart',
+    'educacao': 'graduation-cap',
+    'lazer': 'gamepad',
+    'vestuario': 'tshirt',
+    'tecnologia': 'laptop',
+    'servicos': 'tools',
+    'investimentos': 'chart-line',
+    'viagem': 'plane',
+    'presente': 'gift',
+    'outros': 'question-circle'
+};
+
+// Função para obter o ícone da categoria
+function getCategoryIcon(category) {
+    return categoryIcons[category] || categoryIcons['outros'];
+}
+
+// Função para formatar data
+function formatDate(date) {
+    try {
+        // Se date for uma string no formato YYYY-MM-DD
+        if (typeof date === 'string' && date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            const [year, month, day] = date.split('-');
+            return `${day}/${month}/${year}`;
+        }
+
+        // Se for uma string em outro formato, tentar converter
+        if (typeof date === 'string') {
+            // Remover qualquer caractere inválido
+            date = date.replace(/[^\d-]/g, '');
+            // Se ainda tiver mais de 10 caracteres, pegar os últimos 10
+            if (date.length > 10) {
+                date = date.slice(-10);
+            }
+            // Se tiver menos de 10 caracteres, usar data atual
+            if (date.length !== 10) {
+                date = new Date().toISOString().split('T')[0];
+            }
+            
+            // Agora devemos ter uma string no formato YYYY-MM-DD
+            const [year, month, day] = date.split('-');
+            return `${day}/${month}/${year}`;
+        }
+
+        // Se nada der certo, usar a data atual
+        return new Intl.DateTimeFormat('pt-BR').format(new Date());
+    } catch (error) {
+        console.error('Erro ao formatar data:', error);
+        return new Intl.DateTimeFormat('pt-BR').format(new Date());
+    }
+}
+
+// Variável para controlar o estado de carregamento
+window.isSubmitting = false;
+
+// Adicionar evento de submit do formulário
+function setupTransactionForm() {
+    const form = document.getElementById('transactionForm');
+    if (form) {
+        // Remover qualquer evento existente
+        form.removeEventListener('submit', addTransaction);
+        
+        // Adicionar novo evento
+        form.addEventListener('submit', async (e) => {
+            if (window.isSubmitting) return;
+            
+            e.preventDefault();
+            window.isSubmitting = true;
+            try {
+                await addTransaction(e);
+                window.isSubmitting = false;
+            } catch (error) {
+                console.error('Erro ao processar transação:', error);
+                alert('Erro ao processar transação. Por favor, tente novamente.');
+                window.isSubmitting = false;
+            }
+        });
+        console.log('Evento de submit adicionado ao formulário');
+    } else {
+        console.log('Formulário não encontrado inicialmente');
+    }
+}
+
+// Adicionar evento de submit quando o conteúdo principal for mostrado
+document.addEventListener('DOMContentLoaded', () => {
+    const mainContent = document.getElementById('mainContent');
+    if (mainContent.style.display === 'block') {
+        setupTransactionForm();
+    } else {
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach(mutation => {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                    if (mainContent.style.display === 'block') {
+                        setupTransactionForm();
+                        observer.disconnect();
+                    }
+                }
+            });
+        });
+        observer.observe(mainContent, { attributes: true });
+    }
+});
+
+// Configurar o evento de submit do formulário apenas uma vez
+function setupTransactionForm() {
+    const form = document.getElementById('transactionForm');
+    if (form) {
+        // Remover qualquer evento existente
+        form.removeEventListener('submit', addTransaction);
+        
+        // Adicionar novo evento
+        form.addEventListener('submit', async (e) => {
+            if (window.isSubmitting) return;
+            
+            e.preventDefault();
+            window.isSubmitting = true;
+            try {
+                await addTransaction(e);
+                window.isSubmitting = false;
+            } catch (error) {
+                console.error('Erro ao processar transação:', error);
+                alert('Erro ao processar transação. Por favor, tente novamente.');
+                window.isSubmitting = false;
+            }
+        });
+        console.log('Evento de submit adicionado ao formulário');
+// Função para inicializar o banco de dados
+async function initializeDatabase() {
+    try {
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            console.error('Usuário não está logado');
+            return null;
+        }
+
+        // Referência para o Firestore
+        const firestore = firebase.firestore();
+        const userRef = firestore.collection('users').doc(user.uid);
+        
+        // Garantir que o documento do usuário exista
+        await userRef.set({
+            transactions: [],
+            lastSync: Date.now()
+        }, { merge: true });
+
+        console.log('Firebase inicializado com sucesso');
+        return userRef;
+    } catch (error) {
+        console.error('Erro ao inicializar Firebase:', error);
+        throw error;
+    }
+}
+
+// Função para exportar PDF
+async function exportToPDF() {
+    try {
+        // Verificar se o jsPDF está disponível
+        if (typeof window.jspdf === 'undefined') {
+            throw new Error('jsPDF não está disponível. Por favor, recarregue a página.');
+        }
+
+        // Aguardar a inicialização do jsPDF
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            console.error('Usuário não está logado');
+            return;
+        }
+
+        const firestore = firebase.firestore();
+        const userRef = firestore.collection('users').doc(user.uid);
+        
+        // Obter transações do Firebase
+        const doc = await userRef.get();
+        let transactions = [];
+        if (doc.exists) {
+            const data = doc.data();
+            transactions = data.transactions || [];
+        }
+
+        // Criar PDF
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        
+        // Configurar fontes
+        pdf.setFont('helvetica');
+        pdf.setFontSize(12);
+
+        // Título
+        pdf.setFontSize(18);
+        pdf.text('Relatório de Transações', 105, 20, { align: 'center' });
+        
+        // Data
+        pdf.setFontSize(10);
+        pdf.text(`Gerado em: ${formatDate(new Date())}`, 105, 30, { align: 'center' });
+        
+        // Cabeçalho da tabela
+        const headers = ['Data', 'Descrição', 'Categoria', 'Valor', 'Tipo'];
+        const startY = 40;
+        let y = startY;
+        
+        // Adicionar cabeçalho
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'bold');
+        headers.forEach((header, i) => {
+            pdf.text(header, 15 + (i * 50), y);
+        });
+        y += 15;
+        
+        // Adicionar linhas
+        pdf.setFont('helvetica', 'normal');
+        transactions.forEach((transaction, index) => {
+            const date = formatDate(new Date(transaction.date));
+            const amount = formatCurrency(transaction.amount);
+            const type = transaction.type === 'receita' ? 'Receita' : 'Despesa';
+            
+            const row = [date, transaction.description, transaction.category, amount, type];
+            
+            row.forEach((cell, i) => {
+                pdf.text(cell, 15 + (i * 50), y + (index * 10));
+            });
+        });
+        
+        // Adicionar rodapé
+        y += 10;
+        pdf.setFontSize(10);
+        pdf.text('Gerado pelo Controle Financeiro', 105, y + 10, { align: 'center' });
+        
+        // Salvar PDF
+        pdf.save('relatorio-transacoes.pdf');
+        alert('PDF gerado com sucesso!');
+    } catch (error) {
+        console.error('Erro ao exportar PDF:', error);
+        alert('Erro ao gerar PDF. Por favor, tente novamente.');
+    }
+}
+
+// Função para importar JSON
+async function importJSON(event) {
+    try {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const jsonString = e.target.result;
+                const transactions = JSON.parse(jsonString);
+                
+                const user = firebase.auth().currentUser;
+                if (!user) {
+                    console.error('Usuário não está logado');
+                    return;
+                }
+
+                const firestore = firebase.firestore();
+                const userRef = firestore.collection('users').doc(user.uid);
+                
+                // Obter transações existentes
+                const doc = await userRef.get();
+                let currentTransactions = [];
+                if (doc.exists) {
+                    const data = doc.data();
+                    currentTransactions = data.transactions || [];
+                }
+
+                // Adicionar novas transações
+                const updatedTransactions = [...currentTransactions, ...transactions];
+
+                // Atualizar o documento
+                await userRef.set({
+                    transactions: updatedTransactions,
+                    lastSync: Date.now()
+                }, { merge: true });
+
+                // Atualizar tabela
+                await updateTransactionsTable();
+                
+                alert('Transações importadas com sucesso!');
+            } catch (error) {
+                console.error('Erro ao processar JSON:', error);
+                alert('Erro ao processar o JSON. Por favor, tente novamente.');
+            }
+        };
+        reader.readAsText(file);
+    } catch (error) {
+        console.error('Erro ao importar JSON:', error);
+        alert('Erro ao importar JSON. Por favor, tente novamente.');
+    }
+}
+
+// Função para importar comprovante
+async function importReceipt(event) {
+    try {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        console.log('Iniciando importação de comprovante...');
+        
+        // Verificar se o Tesseract está disponível
+        if (!window.Tesseract) {
+            throw new Error('Tesseract não está disponível. Por favor, recarregue a página.');
+        }
+        
+        // Criar um elemento de imagem temporário
+        const img = new Image();
+        img.src = URL.createObjectURL(file);
+        
+        // Carregar a imagem
+        await new Promise((resolve) => {
+            img.onload = resolve;
+        });
+        
+        console.log('Iniciando OCR...');
+        
+        // Processar a imagem com Tesseract
+        const result = await Tesseract.recognize(
+            img,
+            'por',
+            {
+                logger: (m) => console.log(m),
+                lang: 'por',
+                tessedit_pageseg_mode: '6', // PSM 6 - Assume a single uniform block of text
+                tessedit_char_whitelist: '0123456789.,-abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ ',
+            }
+        );
+        
+        console.log('Texto extraído:', result.data.text);
+        
+        // Processar o texto extraído
+        const text = result.data.text.toLowerCase();
+        const lines = text.split('\n');
+        
+        const transactionData = {
+            description: '',
+            amount: 0,
+            date: new Date(),
+            type: 'despesa',
+            category: 'outros'
+        };
+        
+        // Tentar encontrar a data
+        const dateRegex = /\d{2}[/\-]\d{2}[/\-]\d{2,4}/;
+        const dateMatch = lines.find(line => dateRegex.test(line));
+        if (dateMatch) {
+            const dateStr = dateMatch.match(dateRegex)[0];
+            transactionData.date = new Date(dateStr.replace(/\D/g, '/'));
+        }
+        
+        // Tentar encontrar o nome do estabelecimento
+        const establishmentRegex = /[a-záàâãéèêíìóòôõúùç\s]+/;
+        const establishmentMatch = lines.find(line => line.length > 5 && !line.match(/\d/));
+        if (establishmentMatch) {
+            transactionData.description = establishmentMatch.trim();
+        }
+        
+        // Tentar encontrar o valor
+        const amountRegex = /\d+[.,]\d{2}/g;
+        const amountMatch = lines.find(line => amountRegex.test(line));
+        if (amountMatch) {
+            const amountStr = amountMatch.match(amountRegex)[0].replace(',', '.');
+            transactionData.amount = parseFloat(amountStr);
+        }
+        
+        console.log('Dados extraídos:', transactionData);
+        
+        // Adicionar a transação
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            console.error('Usuário não está logado');
+            return;
+        }
+
+        const firestore = firebase.firestore();
+        const userRef = firestore.collection('users').doc(user.uid);
+        
+        // Obter transações existentes
+        const doc = await userRef.get();
+        let currentTransactions = [];
+        if (doc.exists) {
+            const data = doc.data();
+            currentTransactions = data.transactions || [];
+        }
+
+        // Adicionar nova transação
+        const updatedTransactions = [...currentTransactions, transactionData];
+
+        // Atualizar o documento
+        await userRef.set({
+            transactions: updatedTransactions,
+            lastSync: Date.now()
+        }, { merge: true });
+
+        // Atualizar tabela
+        await updateTransactionsTable();
+        
+        alert('Comprovante importado com sucesso!');
+    } catch (error) {
+        console.error('Erro ao importar comprovante:', error);
+        alert('Erro ao importar comprovante. Por favor, tente novamente.');
+    }
+}
+
+// Função para sincronizar transações com o Firebase
+async function syncTransactionsWithFirebase() {
+    try {
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            console.error('Usuário não está logado');
+            return;
+        }
+
+        // Referência para o Firestore
+        const firestore = firebase.firestore();
+        const userRef = firestore.collection('users').doc(user.uid);
+        
+        // Obter transações existentes do Firebase
+        const doc = await userRef.get();
+        let firebaseTransactions = [];
+        if (doc.exists) {
+            const data = doc.data();
+            firebaseTransactions = data.transactions || [];
+        }
+
+        // Atualizar tabela
+        await updateTransactionsTable();
+        
+        console.log('Sincronização concluída com sucesso');
+    } catch (error) {
+        console.error('Erro ao sincronizar com Firebase:', error);
+        alert('Erro ao sincronizar com o Firebase. Por favor, tente novamente.');
+    }
+}
+
+
+
+// Função para adicionar transação
 window.addTransaction = async function(e) {
     e.preventDefault();
     
@@ -69,891 +535,463 @@ window.addTransaction = async function(e) {
         await updateTransactionsTable();
         
         alert('Transação adicionada com sucesso!');
-        
     } catch (error) {
         console.error('Erro ao adicionar transação:', error);
         alert('Erro ao adicionar transação. Por favor, verifique se você está conectado à internet e tente novamente.');
     }
-};
+}
 
-// Classe principal
-class FinanceControl {
-    constructor() {
-        console.log('Initializing FinanceControl');
-        this.form = document.getElementById('transactionForm');
-        this.transactionsList = [];
-        
-        // Test Firestore connection before proceeding
-        if (!window.db) {
-            console.error('Firebase not initialized');
-            alert('Erro: Firebase não inicializado. Por favor, verifique as configurações do Firebase.');
-            return;
-        }
-        
-        this.transactionsRef = window.transactionsRef;
-        this.recurringTransactionsRef = window.recurringTransactionsRef;
-        
-        // Test Firestore connection
-        this.testFirestoreConnection()
-            .then(() => {
-                console.log('Construtor FinanceControl inicializado com sucesso');
-            })
-            .catch(error => {
-                console.error('Erro na conexão com o Firestore:', error);
-                alert('Erro na conexão com o Firestore. Por favor, verifique as configurações do Firebase.');
-            });
+// Adicionando eventos de clique para os botões
+document.addEventListener('DOMContentLoaded', () => {
+    // Exportar PDF
+    const exportPDFBtn = document.getElementById('exportPDF');
+    if (exportPDFBtn) {
+        exportPDFBtn.addEventListener('click', exportToPDF);
     }
-
-    async testFirestoreConnection() {
-        try {
-            console.log('Testing Firestore connection...');
-            const testDoc = {
-                test: 'connection test',
-                timestamp: new Date().toISOString()
-            };
-            
-            const docRef = await window.addDoc(window.testRef, testDoc);
-            console.log('Test document added successfully:', docRef.id);
-            
-            // Delete test document
-            await window.deleteDoc(window.doc(window.testRef, docRef.id));
-            console.log('Test document deleted successfully');
-            return true;
-        } catch (error) {
-            console.error('Firestore connection test failed:', error);
-            alert('Erro na conexão com o Firestore. Por favor, verifique as configurações do Firebase.');
-            throw error;
-        }
+    
+    // Importar JSON
+    const importDataBtn = document.getElementById('importData');
+    const fileInput = document.getElementById('fileInput');
+    if (importDataBtn && fileInput) {
+        importDataBtn.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => importJSON(e));
     }
-
-    async getAllTransactions() {
-        try {
-            const querySnapshot = await window.getDocs(this.transactionsRef);
-            return querySnapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
-        } catch (error) {
-            console.error('Error getting all transactions:', error);
-            throw new Error('Falha ao carregar transações');
-        }
+    
+    // Importar Comprovante
+    const importReceiptBtn = document.getElementById('importReceipt');
+    const receiptInput = document.getElementById('receiptInput');
+    if (importReceiptBtn && receiptInput) {
+        importReceiptBtn.addEventListener('click', () => receiptInput.click());
+        receiptInput.addEventListener('change', (e) => importReceipt(e));
     }
+});
 
-    async addTransaction(transaction) {
-        try {
-            const docRef = await window.addDoc(this.transactionsRef, transaction);
-            console.log('Transaction added successfully:', docRef.id);
-            return docRef.id;
-        } catch (error) {
-            console.error('Error adding transaction:', error);
-            throw new Error('Falha ao adicionar transação');
-        }
-    }
 
 
-
-    async deleteTransaction(id) {
-        try {
-            console.log('Tentando deletar transação com ID:', id);
-            const docRef = window.doc(this.transactionsRef, id);
-            console.log('DocRef criado:', docRef);
-            const docSnap = await window.getDoc(docRef);
-            console.log('DocSnap recebido:', docSnap);
-            
-            // Verificar se o documento existe usando o método correto do Firestore
-            if (!docSnap.exists) {
-                throw new Error('Transação não encontrada');
-            }
-
-            const transaction = docSnap.data();
-            console.log('Transação encontrada:', transaction);
-            const formattedAmount = new Intl.NumberFormat('pt-BR', {
-                style: 'currency',
-                currency: 'BRL'
-            }).format(transaction.amount);
-
-            const message = `Deseja realmente excluir esta transação?\n\nDescrição: ${transaction.description}\nValor: ${formattedAmount}\nData: ${new Date(transaction.date).toLocaleDateString()}`;
-
-            if (confirm(message)) {
-                console.log('Iniciando exclusão...', docRef);
-                try {
-                    await window.deleteDoc(docRef);
-                    console.log('Exclusão bem-sucedida, recarregando transações...');
-                    await this.loadTransactions();
-                } catch (deleteError) {
-                    console.error('Erro ao excluir documento:', deleteError);
-                    throw deleteError;
-                }
-            }
-        } catch (error) {
-            console.error('Error deleting transaction:', error);
-            alert('Falha ao excluir transação');
-        }
-    }
-
-    async getTransactionsByMonth(month) {
-        if (month === '') return await this.getAllTransactions();
-        
-        const startDate = new Date(new Date().getFullYear(), parseInt(month), 1);
-        const endDate = new Date(new Date().getFullYear(), parseInt(month) + 1, 0);
-        
-        const startStr = startDate.toISOString().split('T')[0];
-        const endStr = endDate.toISOString().split('T')[0];
-        
-        const query = window.query(this.transactionsRef, 
-            window.where('date', '>=', startStr),
-            window.where('date', '<=', endStr)
-        );
-        
-        const docs = await window.getDocs(query);
-        return docs.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
-        
-        const querySnapshot = await window.getDocs(query);
-        return querySnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
-    }
-
-    async getTransactionsByCategory(category) {
-        const query = window.query(this.transactionsRef, 
-            window.where('category', '==', category)
-        );
-        
-        const querySnapshot = await window.getDocs(query);
-        return querySnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
-    }
-
-    async getRecurringTransactions() {
-        const querySnapshot = await window.getDocs(this.recurringTransactionsRef);
-        return querySnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
-    }
-
-    async exportData() {
-        try {
-            const transactions = await this.getAllTransactions();
-            const recurringTransactions = await this.getRecurringTransactions();
-            
-            const data = {
-                transactions,
-                recurringTransactions,
-                exportDate: new Date().toISOString(),
-                version: '1.0'
-            };
-
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `financas_${new Date().toISOString().split('T')[0]}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        } catch (error) {
-            console.error('Error exporting data:', error);
-            alert('Erro ao exportar dados');
-        }
-    }
-
-    async handleFileImport(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        try {
-            const text = await file.text();
-            const data = JSON.parse(text);
-
-            if (!data.version || !data.transactions) {
-                throw new Error('Formato de arquivo inválido');
-            }
-
-            if (!confirm('Isso substituirá todos os dados existentes. Deseja continuar?')) {
-                return;
-            }
-
-            // Limpar dados existentes
-            const transactionDocs = await window.getDocs(this.transactionsRef);
-            const recurringDocs = await window.getDocs(this.recurringTransactionsRef);
-            
-            // Excluir todas as transações existentes
-            await Promise.all(transactionDocs.docs.map(doc => window.deleteDoc(doc.ref)));
-            await Promise.all(recurringDocs.docs.map(doc => window.deleteDoc(doc.ref)));
-
-            // Importar transações
-            if (data.transactions.length > 0) {
-                await Promise.all(data.transactions.map(transaction => 
-                    window.addDoc(this.transactionsRef, transaction)
-                ));
-            }
-
-            // Importar transações recorrentes
-            if (data.recurringTransactions && data.recurringTransactions.length > 0) {
-                await Promise.all(data.recurringTransactions.map(recurring => 
-                    window.addDoc(this.recurringTransactionsRef, recurring)
-                ));
-            }
-
-            await this.loadTransactions();
-            alert('Dados importados com sucesso!');
-        } catch (error) {
-            console.error('Error importing data:', error);
-            alert('Erro ao importar dados. Verifique se o arquivo está no formato correto.');
-        } finally {
-            event.target.value = ''; // Limpar input
-        }
-    }
-
-    async exportPDF() {
-        try {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            const transactions = await this.getAllTransactions();
-
-            // Título
-            doc.setFontSize(20);
-            doc.text('Relatório Financeiro', 105, 15, { align: 'center' });
-            doc.setFontSize(12);
-            doc.text(`Gerado em: ${new Date().toLocaleDateString()}`, 105, 25, { align: 'center' });
-
-            // Resumo
-            doc.setFontSize(16);
-            doc.text('Resumo', 20, 40);
-            doc.setFontSize(12);
-            doc.text(`Total Receitas: R$ ${document.getElementById('totalReceitas').textContent}`, 20, 50);
-            doc.text(`Total Despesas: R$ ${document.getElementById('totalDespesas').textContent}`, 20, 57);
-            doc.text(`Saldo: R$ ${document.getElementById('saldoTotal').textContent}`, 20, 64);
-
-            // Tabela de Transações
-            doc.setFontSize(16);
-            doc.text('Transações', 20, 80);
-            doc.setFontSize(10);
-
-            let y = 90;
-            const pageHeight = doc.internal.pageSize.height;
-
-            // Cabeçalho da tabela
-            doc.text('Data', 20, y);
-            doc.text('Descrição', 45, y);
-            doc.text('Categoria', 95, y);
-            doc.text('Valor', 140, y);
-            doc.text('Tipo', 170, y);
-            y += 7;
-
-            // Linhas da tabela
-            for (const transaction of transactions) {
-                if (y > pageHeight - 20) {
-                    doc.addPage();
-                    y = 20;
-                }
-
-                const date = new Date(transaction.date).toLocaleDateString();
-                const amount = new Intl.NumberFormat('pt-BR', {
-                    style: 'currency',
-                    currency: 'BRL'
-                }).format(transaction.amount);
-
-                doc.text(date, 20, y);
-                doc.text(transaction.description.substring(0, 25), 45, y);
-                doc.text(transaction.category, 95, y);
-                doc.text(amount, 140, y);
-                doc.text(transaction.type === 'receita' ? 'Receita' : 'Despesa', 170, y);
-
-                y += 7;
-            }
-
-            doc.save(`relatorio_financeiro_${new Date().toISOString().split('T')[0]}.pdf`);
-        } catch (error) {
-            console.error('Error exporting PDF:', error);
-            alert('Erro ao exportar PDF');
-        }
-    }
-
-    async handleReceiptImport(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        try {
-            const loadingMessage = document.createElement('div');
-            loadingMessage.className = 'loading-message';
-            loadingMessage.textContent = 'Processando comprovante...';
-            document.body.appendChild(loadingMessage);
-
-            const result = await Tesseract.recognize(file, 'por', {
-                logger: m => console.log(m)
-            });
-
-            document.body.removeChild(loadingMessage);
-
-            // Extrair informações do texto
-            const text = result.data.text;
-            console.log('Texto extraído:', text);
-
-            // Tentar encontrar o valor
-            const valorMatch = text.match(/R\$\s*(\d+[.,]\d{2})/i);
-            const valor = valorMatch ? parseFloat(valorMatch[1].replace(',', '.')) : 0;
-
-            // Tentar encontrar a data
-            const dataMatch = text.match(/(\d{2}[\/\-]\d{2}[\/\-]\d{2,4})/i);
-            const data = dataMatch ? dataMatch[1] : new Date().toISOString().split('T')[0];
-
-            // Preencher o formulário
-            document.getElementById('amount').value = valor;
-            document.getElementById('date').value = this.formatDateForInput(data);
-            document.getElementById('type').value = 'despesa';
-
-            alert('Comprovante processado! Por favor, verifique e ajuste as informações se necessário.');
-        } catch (error) {
-            console.error('Error processing receipt:', error);
-            alert('Erro ao processar comprovante');
-        } finally {
-            event.target.value = '';
-        }
-    }
-
-    formatDateForInput(dateStr) {
-        try {
-            const parts = dateStr.split(/[\/\-]/);
-            if (parts.length !== 3) return new Date().toISOString().split('T')[0];
-
-            let [day, month, year] = parts;
-            if (year.length === 2) year = '20' + year;
-            
-            return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-        } catch (error) {
-            return new Date().toISOString().split('T')[0];
-        }
-    }
-
-    async init() {
-        try {
-            console.log('Initializing application...');
-            
-            // Verificar se o Firebase está inicializado
-            if (!window.db) {
-                throw new Error('Firebase não inicializado');
-            }
-            
-            // Testar conexão com Firestore
-            await this.testFirestoreConnection();
-            
-            // Carregar transações
-            await this.loadTransactions();
-            
-            // Configurar listeners
-            this.setupEventListeners();
-            
-            // Verificar transações recorrentes
-            setInterval(() => this.checkRecurringTransactions(), 24 * 60 * 60 * 1000);
-            
-            console.log('Application initialized successfully');
-        } catch (error) {
-            console.error('Application error:', error);
-            alert('Erro ao inicializar o aplicativo: ' + error.message);
-            throw error; // Propagar o erro para o init.js
-        }
-    }
-
-    async loadTransactions() {
-        try {
-            console.log('Loading transactions...');
-            const transactions = await window.getDocs(this.transactionsRef);
-            this.transactionsList = transactions.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
-            console.log('Loaded transactions:', this.transactionsList);
-            
-            await this.renderTransactions();
-            this.updateTotals();
-            
-            // Atualizar o gráfico usando o método da própria classe
-            this.updateChart(this.transactionsList);
-        } catch (error) {
-            console.error('Error loading transactions:', error);
-            throw new Error('Falha ao carregar transações');
-        }
-    }
-
-    async checkRecurringTransactions() {
-        const today = new Date();
-        const querySnapshot = await window.getDocs(this.recurringTransactionsRef);
-        const recurringTransactions = querySnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
-
-        for (const recurring of recurringTransactions) {
-            const lastGenerated = recurring.lastGenerated ? new Date(recurring.lastGenerated) : new Date(recurring.startDate);
-            const endDate = recurring.endDate ? new Date(recurring.endDate) : null;
-
-            if (endDate && today > endDate) continue;
-
-            let nextDate = this.calculateNextDate(lastGenerated, recurring.frequency);
-            while (nextDate <= today) {
-                if (endDate && nextDate > endDate) break;
-
-                await this.createSingleTransaction(
-                    recurring.description,
-                    recurring.amount,
-                    recurring.type,
-                    recurring.category,
-                    recurring.paymentMethod,
-                    nextDate.toISOString().split('T')[0],
-                    null,
-                    recurring.id
-                );
-
-                nextDate = this.calculateNextDate(nextDate, recurring.frequency);
-            }
-
-            await this.updateRecurringTransaction(recurring.id, {
-                lastGenerated: today.toISOString().split('T')[0]
-            });
-        }
-    }
-
-    calculateNextDate(date, frequency) {
-        const nextDate = new Date(date);
-        switch (frequency) {
-            case 'weekly':
-                nextDate.setDate(nextDate.getDate() + 7);
-                break;
-            case 'monthly':
-                nextDate.setMonth(nextDate.getMonth() + 1);
-                break;
-            case 'yearly':
-                nextDate.setFullYear(nextDate.getFullYear() + 1);
-                break;
-        }
-        return nextDate;
-    }
-
-    setupEventListeners() {
-        this.form.addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.handleTransactionSubmit();
-        });
-
-        document.getElementById('paymentMethod').addEventListener('change', (e) => {
-            const installmentsGroup = document.getElementById('installmentsGroup');
-            installmentsGroup.style.display = 
-                (e.target.value === 'cartao_credito') ? 'block' : 'none';
-            document.getElementById('installments').required = (e.target.value === 'cartao_credito');
-        });
-
-        document.getElementById('isRecurring').addEventListener('change', (e) => {
-            const recurringOptions = document.getElementById('recurringOptions');
-            recurringOptions.style.display = e.target.checked ? 'block' : 'none';
-        });
-
-        document.getElementById('exportData').addEventListener('click', () => this.exportData());
-        document.getElementById('exportPDF').addEventListener('click', () => this.exportPDF());
-        document.getElementById('importData').addEventListener('click', () => document.getElementById('fileInput').click());
-        document.getElementById('importReceipt').addEventListener('click', () => document.getElementById('receiptInput').click());
-        document.getElementById('fileInput').addEventListener('change', (e) => this.handleFileImport(e));
-        document.getElementById('receiptInput').addEventListener('change', (e) => this.handleReceiptImport(e));
-
-        document.getElementById('categoryFilter').addEventListener('change', () => this.filterTransactions());
-        document.getElementById('monthFilter').addEventListener('change', () => this.filterTransactions());
-        document.getElementById('themeToggle').addEventListener('change', () => this.toggleTheme());
-
-        const monthFilter = document.getElementById('monthFilter');
-        const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
-                       'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-        months.forEach((month, index) => {
-            const option = document.createElement('option');
-            option.value = index;
-            option.textContent = month;
-            monthFilter.appendChild(option);
-        });
-    }
-
-    async handleTransactionSubmit() {
-        const description = document.getElementById('description').value;
-        const amount = parseFloat(document.getElementById('amount').value);
-        const type = document.getElementById('type').value;
-        const category = document.getElementById('category').value;
-        const paymentMethod = document.getElementById('paymentMethod').value;
-        const date = document.getElementById('date').value;
-        const installments = parseInt(document.getElementById('installments').value);
-        const isRecurring = document.getElementById('isRecurring').checked;
-
-        try {
-            if (isRecurring) {
-                const frequency = document.getElementById('frequency').value;
-                const endDate = document.getElementById('endDate').value || null;
-
-                const recurringData = {
-                    description,
-                    amount,
-                    type,
-                    category,
-                    paymentMethod,
-                    frequency,
-                    startDate: date,
-                    endDate,
-                    lastGenerated: null
-                };
-
-                const docRef = await addDoc(this.recurringTransactionsRef, recurringData);
-                const recurringId = docRef.id;
-
-                await this.createSingleTransaction(
-                    description,
-                    amount,
-                    type,
-                    category,
-                    paymentMethod,
-                    date,
-                    null,
-                    recurringId
-                );
-            } else if (paymentMethod === 'cartao_credito' && installments > 1) {
-                await this.addInstallmentTransactions(description, amount, category, paymentMethod, date, installments);
-            } else {
-                await this.createSingleTransaction(description, amount, type, category, paymentMethod, date);
-            }
-
-            this.form.reset();
-            document.getElementById('recurringOptions').style.display = 'none';
-            await this.loadTransactions();
-        } catch (error) {
-            console.error('Error submitting transaction:', error);
-            alert('Erro ao adicionar transação');
-        }
-    }
-
-    async createSingleTransaction(description, amount, type, category, paymentMethod, date, installments = null, recurringId = null) {
-        const transaction = {
-            description,
-            amount,
-            type,
-            category,
-            paymentMethod,
-            date,
-            installments: installments || null,
-            recurringId: recurringId || null,
-            createdAt: new Date().toISOString()
-        };
-
-        // Verificar se todos os campos obrigatórios estão definidos
-        const requiredFields = ['description', 'amount', 'type', 'category', 'paymentMethod', 'date'];
-        for (const field of requiredFields) {
-            if (!transaction[field]) {
-                throw new Error(`Campo obrigatório não definido: ${field}`);
-            }
+// Função para atualizar a tabela de transações
+async function updateTransactionsTable() {
+    try {
+        // Limpar a tabela existente
+        const tableBody = document.getElementById('transactionsBody');
+        if (tableBody) {
+            tableBody.innerHTML = '';
         }
 
-        await window.addDoc(this.transactionsRef, transaction);
-    }
-
-    async updateRecurringTransaction(id, data) {
-        try {
-            const docRef = window.doc(this.recurringTransactionsRef, id);
-            await window.setDoc(docRef, data, { merge: true });
-        } catch (error) {
-            console.error('Error updating recurring transaction:', error);
-            throw error;
-            throw new Error('Falha ao adicionar transação');
-        }
-    }
-
-    async addInstallmentTransactions(description, amount, category, paymentMethod, startDate, installments) {
-        const installmentAmount = amount / parseInt(installments);
-        const startMonth = new Date(startDate);
-
-        try {
-            for (let i = 0; i < installments; i++) {
-                const currentDate = new Date(startMonth);
-                currentDate.setMonth(startMonth.getMonth() + i);
-
-                const installmentInfo = {
-                    currentInstallment: i + 1,
-                    totalInstallments: parseInt(installments)
-                };
-
-                await this.createSingleTransaction(
-                    `${description} (${i + 1}/${installments})`,
-                    installmentAmount,
-                    'despesa',
-                    category,
-                    paymentMethod,
-                    currentDate.toISOString().split('T')[0],
-                    installmentInfo
-                );
-            }
-        } catch (error) {
-            console.error('Error adding installment transactions:', error);
-            throw new Error('Falha ao adicionar parcelas');
-        }
-    }
-
-    async filterTransactions() {
-        const categoryFilter = document.getElementById('categoryFilter').value;
-        const monthFilter = document.getElementById('monthFilter').value;
-
-        let filteredTransactions = [];
-
-        try {
-            if (monthFilter === 'todos') {
-                filteredTransactions = await this.getAllTransactions();
-            } else {
-                filteredTransactions = await this.getTransactionsByMonth(monthFilter);
-            }
-
-            if (categoryFilter !== 'todas') {
-                filteredTransactions = filteredTransactions.filter(t => t.category === categoryFilter);
-            }
-
-            await this.renderTransactions(filteredTransactions);
-            this.updateTotals(filteredTransactions);
-            this.updateChart(filteredTransactions);
-        } catch (error) {
-            console.error('Error filtering transactions:', error);
-            alert('Erro ao filtrar transações');
-        }
-    }
-
-    async renderTransactions(transactions = null) {
-        const transactionsList = document.getElementById('transactionsList');
-        const noTransactionsMessage = document.querySelector('.no-transactions');
-        const data = transactions || this.transactionsList;
-
-        transactionsList.innerHTML = '';
-
-        if (data.length === 0) {
-            noTransactionsMessage.style.display = 'block';
+        // Referência para o Firestore
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            console.error('Usuário não está logado');
             return;
         }
 
-        noTransactionsMessage.style.display = 'none';
+        const firestore = firebase.firestore();
+        const userRef = firestore.collection('users').doc(user.uid);
+        
+        // Obter transações do Firebase
+        const userDoc = await userRef.get();
+        let transactions = [];
+        if (userDoc.exists) {
+            const data = userDoc.data();
+            transactions = data.transactions || [];
+        }
+        console.log('Atualizando tabela com', transactions.length, 'transações do Firebase');
 
-        data.sort((a, b) => new Date(b.date) - new Date(a.date));
+        // Ordenar transações por data (mais recentes primeiro)
+        const sortedTransactions = transactions.sort((a, b) => b.timestamp - a.timestamp);
 
-        data.forEach(transaction => {
-            const li = document.createElement('li');
-            li.className = `transaction ${transaction.type}`;
-
-            const installmentInfo = transaction.installmentInfo
-                ? `<span class="installment-info">${transaction.installmentInfo.currentInstallment}/${transaction.installmentInfo.totalInstallments}</span>`
-                : '';
-
-            li.innerHTML = `
-                <div class="transaction-info">
-                    <span class="date">${new Date(transaction.date).toLocaleDateString()}</span>
-                    <div class="description-group">
-                        <i class="${this.getCategoryIcon(transaction.category)}"></i>
-                        <span class="description">${transaction.description}</span>
-                    </div>
-                    <div class="payment-method">
-                        <i class="${this.getPaymentIcon(transaction.paymentMethod)}"></i>
-                        <span class="method-name">${this.getPaymentMethodName(transaction.paymentMethod)}</span>
-                    </div>
-                    ${installmentInfo}
-                </div>
-                <div class="transaction-amount">
-                    <span class="amount">R$ ${transaction.amount.toFixed(2)}</span>
-                    <button class="delete-btn" data-id="${transaction.id}">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
+        // Adicionar cada transação à tabela
+        sortedTransactions.forEach(transaction => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${formatDate(transaction.date)}</td>
+                <td>${transaction.description}</td>
+                <td style="text-align: right; padding-right: 10px;">${formatCurrency(transaction.amount)}</td>
+                <td>${getCategoryIcon(transaction.category)}</td>
+                <td>${transaction.type}</td>
+                <td>${transaction.paymentMethod}</td>
+                <td>
+                    <button class="btn btn-danger btn-sm" onclick="deleteTransaction('${transaction.id}')">Excluir</button>
+                </td>
             `;
-
-            const deleteBtn = li.querySelector('.delete-btn');
-            deleteBtn.addEventListener('click', () => this.deleteTransaction(transaction.id));
-
-            transactionsList.appendChild(li);
-        });
-    }
-
-    updateTotals(transactions = null) {
-        const data = transactions || this.transactionsList;
-        let totalIncome = 0;
-        let totalExpenses = 0;
-        let totalCard = 0;
-
-        data.forEach(transaction => {
-            const amount = transaction.amount;
-            if (transaction.type === 'receita') {
-                totalIncome += amount;
-            } else {
-                totalExpenses += amount;
-                if (transaction.paymentMethod === 'cartao_credito') {
-                    totalCard += amount;
-                }
-            }
+            tableBody.appendChild(row);
         });
 
-        document.getElementById('totalReceitas').textContent = totalIncome.toFixed(2);
-        document.getElementById('totalDespesas').textContent = totalExpenses.toFixed(2);
-        document.getElementById('totalCartao').textContent = totalCard.toFixed(2);
-        document.getElementById('saldoTotal').textContent = (totalIncome - totalExpenses).toFixed(2);
-    }
+        // Atualizar os totais
+        await updateTotals();
 
-    toggleTheme() {
-        document.body.classList.toggle('light-theme');
-    }
-
-    updateChart(transactions = null) {
-        try {
-            const ctx = document.getElementById('expensesChart').getContext('2d');
-            
-            // Destruir o gráfico existente se houver
-            if (this.chart) {
-                this.chart.destroy();
-            }
-
-            // Limpar o canvas
-            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-
-            const data = transactions || this.transactionsList;
-            const categoryTotals = {};
-            let totalExpenses = 0;
-
-            // Calcular totais por categoria
-            data
-                .filter(t => t.type === 'despesa')
-                .forEach(t => {
-                    categoryTotals[t.category] = (categoryTotals[t.category] || 0) + t.amount;
-                    totalExpenses += t.amount;
-                });
-
-            // Se não houver despesas, apenas limpar o canvas
-            if (Object.keys(categoryTotals).length === 0) {
-                return;
-            }
-
-            // Preparar dados para o gráfico
-            const labels = Object.keys(categoryTotals).map(category => {
-                const amount = categoryTotals[category];
-                const percentage = ((amount / totalExpenses) * 100).toFixed(1);
-                return `${this.getCategoryName(category)} (${percentage}%)`;
-            });
-
-            const chartData = {
-                labels,
-                datasets: [{
-                    data: Object.values(categoryTotals),
-                    backgroundColor: [
-                        '#FF6384',
-                        '#36A2EB',
-                        '#FFCE56',
-                        '#4BC0C0',
-                        '#9966FF',
-                        '#FF9F40'
-                    ]
-                }]
-            };
-
-            // Criar novo gráfico
-            this.chart = new Chart(ctx, {
-                type: 'pie',
-                data: chartData,
-                options: {
-                    animation: {
-                        duration: 300
-                    },
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                color: '#ffffff',
-                                padding: 10,
-                                font: {
-                                    size: 12
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-        } catch (error) {
-            console.error('Error updating chart:', error);
-            throw error;
-        }
-    }
-
-    getCategoryName(category) {
-        const categoryNames = {
-            'alimentacao': 'Alimentação',
-            'transporte': 'Transporte',
-            'moradia': 'Moradia',
-            'saude': 'Saúde',
-            'educacao': 'Educação',
-            'lazer': 'Lazer',
-            'vestuario': 'Vestuário',
-            'tecnologia': 'Tecnologia',
-            'servicos': 'Serviços',
-            'investimentos': 'Investimentos',
-            'viagem': 'Viagem',
-            'presente': 'Presentes',
-            'outros': 'Outros'
-        };
-        return categoryNames[category] || category;
-    }
-
-    getPaymentMethodName(method) {
-        const methodNames = {
-            'dinheiro': 'Dinheiro',
-            'cartao_credito': 'Cartão de Crédito',
-            'cartao_debito': 'Cartão de Débito',
-            'pix': 'PIX',
-            'boleto': 'Boleto',
-            'transferencia': 'Transferência',
-            'vale': 'Vale Refeição/Alimentação',
-            'cripto': 'Criptomoeda'
-        };
-        return methodNames[method] || method;
-    }
-
-    getCategoryIcon(category) {
-        const categoryIcons = {
-            'alimentacao': 'fas fa-utensils',
-            'transporte': 'fas fa-bus',
-            'moradia': 'fas fa-home',
-            'saude': 'fas fa-heartbeat',
-            'educacao': 'fas fa-graduation-cap',
-            'lazer': 'fas fa-gamepad',
-            'vestuario': 'fas fa-tshirt',
-            'tecnologia': 'fas fa-laptop',
-            'servicos': 'fas fa-tools',
-            'investimentos': 'fas fa-chart-line',
-            'viagem': 'fas fa-plane',
-            'presente': 'fas fa-gift',
-            'outros': 'fas fa-question-circle'
-        };
-        return categoryIcons[category] || 'fas fa-question-circle';
-    }
-
-    getPaymentIcon(method) {
-        const methodIcons = {
-            'dinheiro': 'fas fa-money-bill-wave',
-            'cartao_credito': 'fas fa-credit-card',
-            'cartao_debito': 'fas fa-credit-card',
-            'pix': 'fas fa-mobile-alt',
-            'boleto': 'fas fa-barcode',
-            'transferencia': 'fas fa-exchange-alt',
-            'vale': 'fas fa-ticket-alt',
-            'cripto': 'fab fa-bitcoin'
-        };
-        return methodIcons[method] || 'fas fa-money-check';
+        console.log('Tabela atualizada com sucesso');
+    } catch (error) {
+        console.error('Erro ao atualizar tabela:', error);
+        alert('Erro ao atualizar tabela. Por favor, tente novamente.');
     }
 }
 
-// Initialize app after DOM and scripts are loaded
-window.addEventListener('load', () => {
-    const financeControl = new FinanceControl();
+// Função para deletar transação
+async function deleteTransaction(transactionId) {
+    if (!confirm('Tem certeza que deseja deletar esta transação?')) {
+        return;
+    }
+
+    try {
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            console.error('Usuário não está logado');
+            alert('Por favor, faça login primeiro.');
+            return;
+        }
+
+        const firestore = firebase.firestore();
+        const userRef = firestore.collection('users').doc(user.uid);
+        
+        // Obter transações existentes
+        const userDoc = await userRef.get();
+        let currentTransactions = [];
+        if (userDoc.exists) {
+            const data = userDoc.data();
+            currentTransactions = data.transactions || [];
+        }
+
+        // Remover a transação
+        const updatedTransactions = currentTransactions.filter(tx => tx.id !== transactionId);
+
+        // Atualizar o documento
+        await userRef.set({
+            transactions: updatedTransactions,
+            lastSync: Date.now()
+        }, { merge: true });
+
+        // Atualizar tabela
+        await updateTransactionsTable();
+        
+        alert('Transação deletada com sucesso!');
+    } catch (error) {
+        console.error('Erro ao deletar transação:', error);
+        alert('Erro ao deletar transação. Por favor, tente novamente.');
+    }
+}
+
+// Função para configurar o gráfico
+async function configureChart() {
+    try {
+        const transactions = await db.transactions.toArray();
+        const categories = {};
+        
+        transactions.forEach(transaction => {
+            if (transaction.type === 'despesa') {
+                const category = transaction.category || 'outros';
+                categories[category] = (categories[category] || 0) + transaction.amount;
+            }
+        });
+
+        const ctx = document.getElementById('expensesChart').getContext('2d');
+        
+        if (window.myChart) {
+            window.myChart.destroy();
+        }
+
+        window.myChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: Object.keys(categories),
+                datasets: [{
+                    data: Object.values(categories),
+                    backgroundColor: [
+                        '#10b981',
+                        '#ef4444',
+                        '#f59e0b',
+                        '#7c3aed',
+                        '#2dd4bf',
+                        '#f472b6',
+                        '#3b82f6',
+                        '#16a34a',
+                        '#db2777',
+                        '#1e40af',
+                        '#8b5cf6'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: 'white'
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: 'Distribuição de Gastos por Categoria',
+                        color: 'white'
+                    }
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Erro ao configurar gráfico:', error);
+    }
+}
+
+// Função para atualizar os totais
+async function updateTotals() {
+    console.log('Atualizando totais...');
+    
+    try {
+        if (!db) {
+            console.log('Inicializando banco de dados...');
+            await initializeDatabase();
+        }
+
+        const transactions = await db.transactions.toArray();
+        console.log('Transações para cálculo de totais:', transactions);
+
+        let totalReceitas = 0;
+        let totalDespesas = 0;
+        let totalCartao = 0;
+        const categoryTotals = {};
+
+        transactions.forEach(transaction => {
+            if (transaction.type === 'receita') {
+                totalReceitas += transaction.amount;
+            } else {
+                totalDespesas += transaction.amount;
+                // Verificar se é cartão de crédito
+                if (transaction.paymentMethod?.toLowerCase() === 'cartao_credito' || transaction.paymentMethod?.toLowerCase() === 'cartão') {
+                    totalCartao += transaction.amount;
+                }
+
+                // Soma por categoria
+                if (categoryTotals[transaction.category]) {
+                    categoryTotals[transaction.category] += transaction.amount;
+                } else {
+                    categoryTotals[transaction.category] = transaction.amount;
+                }
+            }
+        });
+
+        const saldo = totalReceitas - totalDespesas;
+        console.log('Totais calculados:', {
+            receitas: formatCurrency(totalReceitas),
+            despesas: formatCurrency(totalDespesas),
+            cartao: formatCurrency(totalCartao),
+            saldo: formatCurrency(saldo)
+        });
+
+        const totalReceitasElement = document.getElementById('totalReceitas');
+        const totalDespesasElement = document.getElementById('totalDespesas');
+        const totalCartaoElement = document.getElementById('totalCartao');
+        const saldoTotalElement = document.getElementById('saldoTotal');
+
+        if (totalReceitasElement) {
+            totalReceitasElement.textContent = formatCurrency(totalReceitas);
+        } else {
+            console.error('Elemento totalReceitas não encontrado');
+        }
+
+        if (totalDespesasElement) {
+            totalDespesasElement.textContent = formatCurrency(totalDespesas);
+        } else {
+            console.error('Elemento totalDespesas não encontrado');
+        }
+
+        if (totalCartaoElement) {
+            totalCartaoElement.textContent = formatCurrency(totalCartao);
+        } else {
+            console.error('Elemento totalCartao não encontrado');
+        }
+
+        if (saldoTotalElement) {
+            saldoTotalElement.textContent = formatCurrency(saldo);
+        } else {
+            console.error('Elemento saldoTotal não encontrado');
+        }
+
+        // Atualizar gráfico
+        updateChart(categoryTotals);
+    } catch (error) {
+        console.error('Erro ao atualizar totais:', error);
+        alert('Erro ao atualizar totais. Por favor, tente novamente.');
+    }
+}
+
+// Função para atualizar o gráfico
+function updateChart(categoryTotals) {
+    const chartCanvas = document.getElementById('chartCanvas');
+    if (!chartCanvas) return;
+
+    // Limpar gráfico existente
+    if (window.chart) {
+        window.chart.destroy();
+    }
+
+    // Preparar dados para o gráfico
+    const labels = Object.keys(categoryTotals);
+    const data = Object.values(categoryTotals);
+    const backgroundColors = labels.map(category => categoryColors[category] || categoryColors['outros']);
+
+    // Configuração do gráfico
+    const config = {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: backgroundColors,
+                hoverOffset: 4,
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        color: 'white',
+                        font: {
+                            size: 14
+                        }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => {
+                            const label = context.label || '';
+                            const value = formatCurrency(context.parsed);
+                            return `${label}: ${value}`;
+                        }
+                    },
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleColor: 'white',
+                    bodyColor: 'white',
+                    borderColor: 'white',
+                    borderWidth: 1
+                }
+            },
+            animation: {
+                duration: 1000,
+                easing: 'easeInOutQuart'
+            }
+        }
+    };
+
+    // Criar novo gráfico
+    window.chart = new Chart(chartCanvas, config);
+}
+
+// Função para carregar transações do Firebase
+async function loadTransactionsFromFirebase() {
+    try {
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            console.error('Usuário não está logado');
+            return;
+        }
+
+        // Referência para o Firestore
+        const firestore = firebase.firestore();
+        const userRef = firestore.collection('users').doc(user.uid);
+        
+        // Obter documento do usuário
+        const userDoc = await userRef.get();
+        
+        if (userDoc.exists) {
+            const data = userDoc.data();
+            if (data.transactions && Array.isArray(data.transactions)) {
+                // Adicionar novas transações ao banco local
+                const localTransactions = await db.transactions.toArray();
+                
+                // Filtrar transações novas (que não existem localmente) usando ID
+                const newTransactions = data.transactions.filter(firebaseTx => {
+                    return !localTransactions.some(localTx => 
+                        localTx.id === firebaseTx.id
+                    );
+                });
+
+                console.log('Transações novas do Firebase:', newTransactions);
+                
+                // Adicionar apenas as novas transações
+                if (newTransactions.length > 0) {
+                    await db.transactions.bulkAdd(newTransactions);
+                    console.log('Novas transações adicionadas:', newTransactions.length);
+                }
+                
+                // Atualizar tabela
+                await updateTransactionsTable();
+            }
+        }
+    } catch (error) {
+        console.error('Erro ao carregar transações do Firebase:', error);
+        alert('Erro ao carregar transações do Firebase. Por favor, tente novamente.');
+    }
+}
+
+// Adicionando eventos quando a página carregar
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        // Inicializar banco de dados e Firebase
+        await initializeDatabase();
+        
+        // Carregar transações do Firebase e sincronizar
+        await loadTransactionsFromFirebase();
+        
+        // Configurar listener para atualizações em tempo real
+        const user = firebase.auth().currentUser;
+        if (user) {
+            const firestore = firebase.firestore();
+            const userRef = firestore.collection('users').doc(user.uid);
+            
+            // Adicionar listener para atualizações em tempo real
+            userRef.onSnapshot(async (doc) => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    if (data.transactions && Array.isArray(data.transactions)) {
+                        // Adicionar novas transações ao banco local
+                        const localTransactions = await db.transactions.toArray();
+                        
+                        // Filtrar transações novas (que não existem localmente)
+                        const newTransactions = data.transactions.filter(firebaseTx => {
+                            return !localTransactions.some(localTx => 
+                                localTx.description === firebaseTx.description &&
+                                localTx.amount === firebaseTx.amount &&
+                                localTx.date === firebaseTx.date
+                            );
+                        });
+
+                        console.log('Transações novas do Firebase:', newTransactions);
+                        
+                        // Adicionar apenas as novas transações
+                        if (newTransactions.length > 0) {
+                            await db.transactions.bulkAdd(newTransactions);
+                            console.log('Novas transações adicionadas:', newTransactions.length);
+                        }
+                        
+                        // Atualizar tabela
+                        await updateTransactionsTable();
+                        
+                        // Atualizar totais
+                        await updateTotals();
+                    }
+                }
+            });
+        }
+        
+        // Atualizar a tabela inicialmente
+        updateTransactionsTable();
+        
+        // Configurar filtro de categoria
+        const categoryFilter = document.getElementById('categoryFilter');
+        if (categoryFilter) {
+            categoryFilter.addEventListener('change', updateTransactionsTable);
+        }
+        
+        // Configurar filtro de mês
+        const monthFilter = document.getElementById('monthFilter');
+        if (monthFilter) {
+            monthFilter.addEventListener('change', updateTransactionsTable);
+        }
+    } catch (error) {
+        console.error('Erro ao inicializar:', error);
+    }
 });
