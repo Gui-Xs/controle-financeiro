@@ -1,26 +1,3 @@
-// Configuração do Firebase
-console.log('Iniciando configuração do Firebase...');
-
-const firebaseConfig = {
-    apiKey: "AIzaSyA4iBJU8fzFXX0ShQX_Wg6n4TK4vwM2Mh0",
-    authDomain: "controle-financeiro-9d7c4.firebaseapp.com",
-    projectId: "controle-financeiro-9d7c4",
-    storageBucket: "controle-financeiro-9d7c4.firebasestorage.app",
-    messagingSenderId: "698161065367",
-    appId: "1:698161065367:web:8ddea9ba6dcb1b723c68d2",
-    cookieFlags: 'SameSite=None; Secure; Partitioned'
-};
-
-// Inicializar Firebase
-console.log('Iniciando Firebase...');
-firebase.initializeApp(firebaseConfig);
-const app = firebase.app();
-console.log('Firebase inicializado:', app.name);
-
-// Configurar autenticação
-const auth = firebase.auth();
-console.log('Autenticação configurada:', auth);
-
 // Configurar provedor do Google
 const provider = new firebase.auth.GoogleAuthProvider();
 provider.setCustomParameters({
@@ -33,9 +10,6 @@ firebase.auth().setPersistence(firebase.auth.Auth.Persistence.SESSION);
 // Configurar opções de popup
 provider.addScope('https://www.googleapis.com/auth/userinfo.email');
 provider.addScope('https://www.googleapis.com/auth/userinfo.profile');
-
-// Configurar opções de autenticação
-firebase.auth().setPersistence(firebase.auth.Auth.Persistence.SESSION);
 
 console.log('Provedor do Google configurado com configurações de cookie');
 
