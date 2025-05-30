@@ -492,7 +492,7 @@ async function loadTransactionsFromFirebase() {
 }
 
 // Função para adicionar transação
-async function addTransaction(e) {
+window.addTransaction = async function(e) {
     e.preventDefault();
     
     try {

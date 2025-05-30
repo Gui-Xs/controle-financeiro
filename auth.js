@@ -67,7 +67,16 @@ function updateUI(user) {
         // Adicionar evento de submit do formulário após o login bem-sucedido
         const form = document.getElementById('transactionForm');
         if (form) {
-            form.addEventListener('submit', addTransaction);
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                try {
+                    await addTransaction(e);
+                    console.log('Transação adicionada com sucesso');
+                } catch (error) {
+                    console.error('Erro ao adicionar transação:', error);
+                    alert('Erro ao adicionar transação. Por favor, tente novamente.');
+                }
+            });
             console.log('Evento de submit adicionado ao formulário após login');
         }
     } else {
