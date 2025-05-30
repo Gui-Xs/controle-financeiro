@@ -506,55 +506,43 @@ async function addTransaction(e) {
         }
 
         // Obter os valores do formulário
-        const description = document.getElementById('description').value;
+        const description = document.getElementById('description').value.trim();
         const amount = parseFloat(document.getElementById('amount').value);
         const dateInput = document.getElementById('date').value;
         const category = document.getElementById('category').value;
         const type = document.getElementById('type').value;
+        const paymentMethod = document.getElementById('paymentMethod').value;
         
         // Validar campos obrigatórios
-        if (!description || !amount || !category || !type) {
+        if (!description || !amount || !category || !type || !paymentMethod) {
             alert('Por favor, preencha todos os campos obrigatórios.');
             return;
         }
 
-        // Se não houver data ou for inválida, usar a data atual
-        let date = dateInput;
+        // Validar valor
+        if (isNaN(amount) || amount <= 0) {
+            alert('Por favor, insira um valor válido.');
+            return;
+        }
+
+        // Validar data
+        const date = dateInput || new Date().toISOString().split('T')[0];
         if (!date || date.includes('undefined') || date.includes('NaN')) {
+            alert('Data inválida. Usando data atual.');
             date = new Date().toISOString().split('T')[0];
         }
 
-        // Garantir que a data esteja sempre no formato YYYY-MM-DD
-        if (typeof date === 'string') {
-            // Remover qualquer caractere inválido
-            date = date.replace(/\D/g, '');
-            // Se tiver mais de 8 dígitos, pegar os últimos 8
-            if (date.length > 8) {
-                date = date.slice(-8);
-            }
-            // Se tiver menos de 8 dígitos, usar data atual
-            if (date.length !== 8) {
-                date = new Date().toISOString().split('T')[0];
-            } else {
-                // Formatar como YYYY-MM-DD
-                const year = date.slice(0, 4);
-                const month = date.slice(4, 6);
-                const day = date.slice(6, 8);
-                date = `${year}-${month}-${day}`;
-            }
-        }
-
-        // Processar a data
+        // Criar objeto de transação
         const transaction = {
             description,
-            amount,
+            amount: Math.abs(amount), // Garantir que o valor seja sempre positivo
             category,
             type,
             date,
-            paymentMethod: document.getElementById('paymentMethod').value || 'dinheiro',
-            frequency: document.getElementById('frequency').value,
-            endDate: document.getElementById('endDate').value,
-            timestamp: Date.now()  // Adicionando timestamp para melhor ordenação
+            paymentMethod: paymentMethod.toLowerCase(),
+            frequency: document.getElementById('frequency').value || '',
+            endDate: document.getElementById('endDate').value || '',
+            timestamp: Date.now()
         };
 
         // Verificar se o banco de dados está inicializado
@@ -564,7 +552,6 @@ async function addTransaction(e) {
 
         // Adicionar a transação
         const result = await db.transactions.add(transaction);
-        console.log('Transação antes de salvar:', transaction);
         console.log('Transação salva com sucesso:', result);
         
         // Atualizar a tabela
@@ -637,19 +624,30 @@ async function updateTransactionsTable() {
             ? transactions 
             : transactions.filter(t => t.category === categoryFilter);
 
-        // Ordenar transações por data e timestamp (mais recentes primeiro)
+        // Ordenar transações por timestamp e data (mais recentes primeiro)
         filteredTransactions.sort((a, b) => {
-            // Se tiver timestamp, usar timestamp
+            // Verificar se as transações são iguais (evitar duplicações)
+            if (a.id === b.id) {
+                return 0;
+            }
+            
+            // Primeiro usar timestamp se existir
             if (a.timestamp && b.timestamp) {
                 return b.timestamp - a.timestamp;
             }
+            
             // Se não tiver timestamp, usar data
             const dateA = new Date(a.date);
             const dateB = new Date(b.date);
             
-            // Se a data for inválida, usar timestamp atual
-            const validDateA = !isNaN(dateA.getTime()) ? dateA : new Date(a.timestamp || Date.now());
-            const validDateB = !isNaN(dateB.getTime()) ? dateB : new Date(b.timestamp || Date.now());
+            // Verificar se as datas são válidas
+            const validDateA = !isNaN(dateA.getTime()) ? dateA : new Date();
+            const validDateB = !isNaN(dateB.getTime()) ? dateB : new Date();
+            
+            // Se as datas forem iguais, usar timestamp como critério de desempate
+            if (validDateA.getTime() === validDateB.getTime()) {
+                return (b.timestamp || Date.now()) - (a.timestamp || Date.now());
+            }
             
             return validDateB - validDateA;
         });
