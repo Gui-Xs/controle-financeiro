@@ -80,34 +80,43 @@ function formatDate(date) {
 }
 
 // Adicionar evento de submit do formulário
-const form = document.getElementById('transactionForm');
-if (form) {
-    form.addEventListener('submit', addTransaction);
-    console.log('Evento de submit adicionado ao formulário');
-} else {
-    console.log('Formulário não encontrado inicialmente');
-    
-    // Tentar adicionar o evento novamente quando o conteúdo principal for mostrado
-    const observer = new MutationObserver((mutations) => {
-        mutations.forEach(mutation => {
-            if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
-                const mainContent = document.getElementById('mainContent');
-                if (mainContent.style.display === 'block') {
-                    const form = document.getElementById('transactionForm');
-                    if (form) {
-                        form.addEventListener('submit', addTransaction);
-                        console.log('Evento de submit adicionado após mostrar conteúdo principal');
-                        observer.disconnect(); // Parar de observar após adicionar o evento
-                    }
-                }
+function setupTransactionForm() {
+    const form = document.getElementById('transactionForm');
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                await addTransaction(e);
+            } catch (error) {
+                console.error('Erro ao processar transação:', error);
+                alert('Erro ao processar transação. Por favor, tente novamente.');
             }
         });
-    });
-    
-    observer.observe(document.getElementById('mainContent'), {
-        attributes: true
-    });
+        console.log('Evento de submit adicionado ao formulário');
+    } else {
+        console.log('Formulário não encontrado inicialmente');
+    }
 }
+
+// Adicionar evento de submit quando o conteúdo principal for mostrado
+document.addEventListener('DOMContentLoaded', () => {
+    const mainContent = document.getElementById('mainContent');
+    if (mainContent.style.display === 'block') {
+        setupTransactionForm();
+    } else {
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach(mutation => {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                    if (mainContent.style.display === 'block') {
+                        setupTransactionForm();
+                        observer.disconnect();
+                    }
+                }
+            });
+        });
+        observer.observe(mainContent, { attributes: true });
+    }
+});
 
 // Função para inicializar o banco de dados
 let db = null;
