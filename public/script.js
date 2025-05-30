@@ -1003,43 +1003,4 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// Função para atualizar a tabela de transações
-async function updateTransactionsTable() {
-    try {
-        const user = firebase.auth().currentUser;
-        if (!user) {
-            console.error('Usuário não está logado');
-            return;
-        }
-
-        const firestore = firebase.firestore();
-        const userRef = firestore.collection('users').doc(user.uid);
-        const userDoc = await userRef.get();
-
-        if (userDoc.exists) {
-            const data = userDoc.data();
-            const transactions = data.transactions || [];
-            
-            const tableBody = document.getElementById('transactionsTable').getElementsByTagName('tbody')[0];
-            if (!tableBody) return;
-            
-            tableBody.innerHTML = '';
-            
-            transactions.forEach((transaction, index) => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${formatDate(transaction.date)}</td>
-                    <td>${transaction.description}</td>
-                    <td>${transaction.category}</td>
-                    <td>${formatCurrency(transaction.amount)}</td>
-                    <td>
-                        <button onclick="deleteTransaction('${transaction.id}')" class="delete-btn">Excluir</button>
-                    </td>
-                `;
-                tableBody.appendChild(row);
-            });
-        }
-    } catch (error) {
-        console.error('Erro ao atualizar tabela:', error);
-    }
-};
+;
