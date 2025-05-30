@@ -527,7 +527,7 @@ async function updateTransactionsTable() {
                 filteredTransactions.forEach(transaction => {
                     console.log('Adicionando transação à lista:', transaction);
                     const transactionItem = document.createElement('li');
-                    transactionItem.className = 'transaction-item';
+                    transactionItem.className = `transaction-item transaction ${transaction.type}`;
                     
                     // Criar elementos separadamente para melhor manipulação
                     const detailsDiv = document.createElement('div');

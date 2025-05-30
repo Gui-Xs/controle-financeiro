@@ -328,12 +328,12 @@ main {
     background-color: rgba(255, 255, 255, 0.05);
 }
 
-.transaction-details .amount.positive {
+.transaction.receita .amount {
     background-color: rgba(16, 185, 129, 0.2);
     color: var(--success-color);
 }
 
-.transaction-details .amount.negative {
+.transaction.despesa .amount {
     background-color: rgba(239, 68, 68, 0.2);
     color: var(--danger-color);
 }
@@ -345,7 +345,7 @@ main {
 }
 
 /* Estilo para valores negativos */
-.transaction-details .amount.negative::before {
+.transaction.despesa .amount::before {
     content: '-';
     color: var(--danger-color);
     margin-right: 0.25rem;
