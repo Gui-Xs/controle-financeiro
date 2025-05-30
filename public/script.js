@@ -1,6 +1,3 @@
-// Usando as referências do firebase.js
-const db = window.db;
-
 // Funções auxiliares
 function formatCurrency(value) {
     return new Intl.NumberFormat('pt-BR', {
