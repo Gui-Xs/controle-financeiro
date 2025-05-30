@@ -219,33 +219,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// Função para inicializar o banco de dados
-async function initializeDatabase() {
-    try {
-        const user = firebase.auth().currentUser;
-        if (!user) {
-            console.error('Usuário não está logado');
-            return null;
-        }
-
-        // Referência para o Firestore
-        const firestore = firebase.firestore();
-        const userRef = firestore.collection('users').doc(user.uid);
-        
-        // Garantir que o documento do usuário exista
-        await userRef.set({
-            transactions: [],
-            lastSync: Date.now()
-        }, { merge: true });
-
-        console.log('Firebase inicializado com sucesso');
-        return userRef;
-    } catch (error) {
-        console.error('Erro ao inicializar Firebase:', error);
-        throw error;
-    }
-}
-
 // Função para exportar PDF
 async function exportToPDF() {
     try {
