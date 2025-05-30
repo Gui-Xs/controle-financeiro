@@ -462,34 +462,7 @@ async function syncTransactionsWithFirebase() {
     }
 }
 
-// Função para carregar transações do Firebase
-async function loadTransactionsFromFirebase() {
-    try {
-        const user = firebase.auth().currentUser;
-        if (!user) {
-            console.error('Usuário não está logado');
-            return;
-        }
 
-        // Referência para o Firestore
-        const firestore = firebase.firestore();
-        const userRef = firestore.collection('users').doc(user.uid);
-        
-        // Obter documento do usuário
-        const doc = await userRef.get();
-        
-        if (doc.exists) {
-            const data = doc.data();
-            if (data.transactions && Array.isArray(data.transactions)) {
-                // Atualizar tabela
-                await updateTransactionsTable();
-            }
-        }
-    } catch (error) {
-        console.error('Erro ao carregar transações do Firebase:', error);
-        alert('Erro ao carregar transações do Firebase. Por favor, tente novamente.');
-    }
-}
 
 // Função para adicionar transação
 window.addTransaction = async function(e) {
@@ -593,11 +566,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// Removendo o evento de submit direto do formulário
-const form = document.getElementById('transactionForm');
-if (form) {
-    form.removeEventListener('submit', addTransaction);
-}
+
 
 // Função para atualizar a tabela de transações
 async function updateTransactionsTable() {
