@@ -534,23 +534,58 @@ async function syncTransactionsWithFirebase() {
         }
 
         // Obter todas as transações do banco local
-        const transactions = await db.transactions.toArray();
-        console.log('Sincronizando transações:', transactions);
+        const localTransactions = await db.transactions.toArray();
+        console.log('Sincronizando transações:', localTransactions);
 
         // Referência para o Firestore
         const firestore = firebase.firestore();
         const userRef = firestore.collection('users').doc(user.uid);
         
-        // Criar ou atualizar o documento do usuário
-        await userRef.set({
-            transactions: transactions,
-            lastSync: Date.now()
-        }, { merge: true });
+        // Obter transações existentes do Firebase
+        const doc = await userRef.get();
+        let firebaseTransactions = [];
+        if (doc.exists) {
+            const data = doc.data();
+            firebaseTransactions = data.transactions || [];
+        }
+
+        // Filtrar transações novas (que não existem no Firebase)
+        const newTransactions = localTransactions.filter(localTx => {
+            return !firebaseTransactions.some(firebaseTx => 
+                firebaseTx.description === localTx.description &&
+                firebaseTx.amount === localTx.amount &&
+                firebaseTx.date === localTx.date
+            );
+        });
+
+        console.log('Transações novas para sincronizar:', newTransactions);
+
+        // Se houver transações novas, adicionar ao Firebase
+        if (newTransactions.length > 0) {
+            // Primeiro obter todas as transações do Firebase
+            const currentFirebaseTx = await userRef.get();
+            let currentTransactions = [];
+            if (currentFirebaseTx.exists) {
+                const data = currentFirebaseTx.data();
+                currentTransactions = data.transactions || [];
+            }
+
+            // Adicionar as novas transações
+            const updatedTransactions = [...currentTransactions, ...newTransactions];
+
+            // Atualizar o documento
+            await userRef.set({
+                transactions: updatedTransactions,
+                lastSync: Date.now()
+            }, { merge: true });
+
+            console.log('Transações novas sincronizadas com sucesso com o Firebase');
+        }
 
         // Atualizar a tabela após sincronizar com Firebase
         await updateTransactionsTable();
 
-        console.log('Transações sincronizadas com sucesso com o Firebase');
+        console.log('Sincronização concluída com sucesso');
     } catch (error) {
         console.error('Erro ao sincronizar com Firebase:', error);
         alert('Erro ao sincronizar com o Firebase. Por favor, tente novamente.');
@@ -1054,12 +1089,25 @@ async function loadTransactionsFromFirebase() {
         if (doc.exists) {
             const data = doc.data();
             if (data.transactions && Array.isArray(data.transactions)) {
-                // Limpar banco local
-                await db.transactions.clear();
+                // Adicionar novas transações ao banco local
+                const localTransactions = await db.transactions.toArray();
                 
-                // Adicionar todas as transações
-                await db.transactions.bulkAdd(data.transactions);
-                console.log('Transações carregadas do Firebase:', data.transactions.length);
+                // Filtrar transações novas (que não existem localmente)
+                const newTransactions = data.transactions.filter(firebaseTx => {
+                    return !localTransactions.some(localTx => 
+                        localTx.description === firebaseTx.description &&
+                        localTx.amount === firebaseTx.amount &&
+                        localTx.date === firebaseTx.date
+                    );
+                });
+
+                console.log('Transações novas do Firebase:', newTransactions);
+                
+                // Adicionar apenas as novas transações
+                if (newTransactions.length > 0) {
+                    await db.transactions.bulkAdd(newTransactions);
+                    console.log('Novas transações adicionadas:', newTransactions.length);
+                }
                 
                 // Atualizar tabela
                 await updateTransactionsTable();
@@ -1091,12 +1139,25 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (doc.exists) {
                     const data = doc.data();
                     if (data.transactions && Array.isArray(data.transactions)) {
-                        // Limpar banco local
-                        await db.transactions.clear();
+                        // Adicionar novas transações ao banco local
+                        const localTransactions = await db.transactions.toArray();
                         
-                        // Adicionar todas as transações
-                        await db.transactions.bulkAdd(data.transactions);
-                        console.log('Transações sincronizadas em tempo real:', data.transactions.length);
+                        // Filtrar transações novas (que não existem localmente)
+                        const newTransactions = data.transactions.filter(firebaseTx => {
+                            return !localTransactions.some(localTx => 
+                                localTx.description === firebaseTx.description &&
+                                localTx.amount === firebaseTx.amount &&
+                                localTx.date === firebaseTx.date
+                            );
+                        });
+
+                        console.log('Transações novas do Firebase:', newTransactions);
+                        
+                        // Adicionar apenas as novas transações
+                        if (newTransactions.length > 0) {
+                            await db.transactions.bulkAdd(newTransactions);
+                            console.log('Novas transações adicionadas:', newTransactions.length);
+                        }
                         
                         // Atualizar tabela
                         await updateTransactionsTable();
