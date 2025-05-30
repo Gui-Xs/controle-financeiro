@@ -549,20 +549,9 @@ async function addTransaction(e) {
         const firestore = firebase.firestore();
         const userRef = firestore.collection('users').doc(user.uid);
         
-        // Obter transações existentes
-        const doc = await userRef.get();
-        let currentTransactions = [];
-        if (doc.exists) {
-            const data = doc.data();
-            currentTransactions = data.transactions || [];
-        }
-
-        // Adicionar nova transação
-        const updatedTransactions = [...currentTransactions, transaction];
-
-        // Atualizar o documento
+        // Adicionar transação usando set com merge
         await userRef.set({
-            transactions: updatedTransactions,
+            transactions: firebase.firestore.FieldValue.arrayUnion(transaction),
             lastSync: Date.now()
         }, { merge: true });
 
@@ -572,11 +561,10 @@ async function addTransaction(e) {
         // Atualizar tabela
         await updateTransactionsTable();
         
-        // Mostrar mensagem de sucesso
         alert('Transação adicionada com sucesso!');
     } catch (error) {
         console.error('Erro ao adicionar transação:', error);
-        alert('Erro ao adicionar transação. Por favor, tente novamente.');
+        alert('Erro ao adicionar transação. Por favor, verifique se você está conectado à internet e tente novamente.');
     }
 }
 
