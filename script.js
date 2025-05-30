@@ -636,7 +636,14 @@ async function updateTransactionsTable() {
             : transactions.filter(t => t.category === categoryFilter);
 
         // Ordenar transações por data (mais recentes primeiro)
-        filteredTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+        filteredTransactions.sort((a, b) => {
+            // Primeiro, tentar usar o timestamp se existir
+            if (a.timestamp && b.timestamp) {
+                return b.timestamp - a.timestamp;
+            }
+            // Se não tiver timestamp, usar a data
+            return new Date(b.date) - new Date(a.date);
+        });
 
         // Adicionar cada transação à tabela
         filteredTransactions.forEach(transaction => {
@@ -795,7 +802,8 @@ async function updateTotals() {
                 totalReceitas += transaction.amount;
             } else {
                 totalDespesas += transaction.amount;
-                if (transaction.paymentMethod === 'cartao_credito') {
+                // Verificar se é cartão de crédito
+                if (transaction.paymentMethod?.toLowerCase() === 'cartao_credito' || transaction.paymentMethod?.toLowerCase() === 'cartão') {
                     totalCartao += transaction.amount;
                 }
 
