@@ -1,3 +1,17 @@
+// Inicializar Firebase
+const firebaseConfig = {
+    apiKey: "AIzaSyA4iBJU8fzFXX0ShQX_Wg6n4TK4vwM2Mh0",
+    authDomain: "controle-financeiro-9d7c4.firebaseapp.com",
+    projectId: "controle-financeiro-9d7c4",
+    storageBucket: "controle-financeiro-9d7c4.firebasestorage.app",
+    messagingSenderId: "698161065367",
+    appId: "1:698161065367:web:8ddea9ba6dcb1b723c68d2"
+};
+
+// Inicializar Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
 // Funções auxiliares
 function formatCurrency(value) {
     return new Intl.NumberFormat('pt-BR', {
@@ -208,13 +222,19 @@ const firebaseConfig = {
 };
 
 // Inicializar Firebase
-const app = firebase.initializeApp(firebaseConfig);
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
-// Inicializar Firestore
-const db = app.firestore();
+// Testar conexão com o Firestore
+try {
+    const testRef = db.collection('test');
+    console.log('Firestore connection test successful');
+} catch (error) {
+    console.error('Firestore connection test failed:', error);
+}
 
 // Inicializar Auth
-const auth = app.auth();
+const auth = firebase.auth();
 
 // Adicionar evento de submit ao formulário quando o DOM estiver pronto
 document.addEventListener('DOMContentLoaded', () => {
@@ -502,11 +522,29 @@ async function updateTransactionsTable() {
             filteredTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
 
             // Atualizar lista de transações
+            const transactionsContainer = document.querySelector('.transactions-container');
             const transactionsList = document.getElementById('transactionsList');
-            if (transactionsList) {
-                console.log('Encontrado elemento transactionsList');
+            
+            if (transactionsContainer && transactionsList) {
+                console.log('Encontrado container de transações');
                 transactionsList.innerHTML = '';
 
+                // Adicionar cabeçalho da tabela
+                const header = document.createElement('li');
+                header.className = 'transaction-header';
+                header.innerHTML = `
+                    <div class="transaction-details">
+                        <span class="description">Descrição</span>
+                        <span class="amount">Valor</span>
+                        <span class="category">Categoria</span>
+                        <span class="type">Tipo</span>
+                        <span class="date">Data</span>
+                        <span class="payment-method">Forma de Pagamento</span>
+                    </div>
+                `;
+                transactionsList.appendChild(header);
+
+                // Adicionar transações
                 filteredTransactions.forEach(transaction => {
                     console.log('Adicionando transação à lista:', transaction);
                     const listItem = document.createElement('li');
@@ -533,15 +571,14 @@ async function updateTransactionsTable() {
                 // Atualizar gráfico
                 await updateChart();
             } else {
-                console.error('Elemento transactionsList não encontrado');
+                console.error('Não foi possível encontrar o container de transações');
             }
         } else {
-            console.error('Documento do usuário não encontrado');
-            return;
+            console.log('Nenhum documento encontrado');
         }
     } catch (error) {
-        console.error('Erro ao atualizar tabela:', error);
-        alert('Erro ao atualizar tabela. Por favor, tente novamente.');
+        console.error('Erro ao atualizar tabela de transações:', error);
+        alert('Erro ao atualizar tabela de transações. Por favor, tente novamente.');
     }
 }
 
