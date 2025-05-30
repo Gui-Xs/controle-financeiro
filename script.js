@@ -524,6 +524,72 @@ function parseReceiptContent(text) {
     }
 }
 
+// Função para sincronizar transações com o Firebase
+async function syncTransactionsWithFirebase() {
+    try {
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            console.error('Usuário não está logado');
+            return;
+        }
+
+        // Obter todas as transações do banco local
+        const transactions = await db.transactions.toArray();
+        console.log('Sincronizando transações:', transactions);
+
+        // Referência para o Firestore
+        const firestore = firebase.firestore();
+        const userRef = firestore.collection('users').doc(user.uid);
+        
+        // Criar ou atualizar o documento do usuário
+        await userRef.set({
+            transactions: transactions,
+            lastSync: Date.now()
+        }, { merge: true });
+
+        console.log('Transações sincronizadas com sucesso com o Firebase');
+    } catch (error) {
+        console.error('Erro ao sincronizar com Firebase:', error);
+        alert('Erro ao sincronizar com o Firebase. Por favor, tente novamente.');
+    }
+}
+
+// Função para carregar transações do Firebase
+async function loadTransactionsFromFirebase() {
+    try {
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            console.error('Usuário não está logado');
+            return;
+        }
+
+        // Referência para o Firestore
+        const firestore = firebase.firestore();
+        const userRef = firestore.collection('users').doc(user.uid);
+        
+        // Obter documento do usuário
+        const doc = await userRef.get();
+        
+        if (doc.exists) {
+            const data = doc.data();
+            if (data.transactions && Array.isArray(data.transactions)) {
+                // Limpar banco local
+                await db.transactions.clear();
+                
+                // Adicionar todas as transações
+                await db.transactions.bulkAdd(data.transactions);
+                console.log('Transações carregadas do Firebase:', data.transactions.length);
+                
+                // Atualizar tabela
+                await updateTransactionsTable();
+            }
+        }
+    } catch (error) {
+        console.error('Erro ao carregar transações do Firebase:', error);
+        alert('Erro ao carregar transações do Firebase. Por favor, tente novamente.');
+    }
+}
+
 // Função para adicionar transação
 async function addTransaction(e) {
     e.preventDefault();
