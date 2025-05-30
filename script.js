@@ -79,6 +79,9 @@ function formatDate(date) {
     }
 }
 
+// Variável para controlar o estado de carregamento
+window.isSubmitting = false;
+
 // Adicionar evento de submit do formulário
 function setupTransactionForm() {
     const form = document.getElementById('transactionForm');
@@ -88,17 +91,17 @@ function setupTransactionForm() {
         
         // Adicionar novo evento
         form.addEventListener('submit', async (e) => {
-            if (isSubmitting) return;
+            if (window.isSubmitting) return;
             
             e.preventDefault();
-            isSubmitting = true;
+            window.isSubmitting = true;
             try {
                 await addTransaction(e);
-                isSubmitting = false;
+                window.isSubmitting = false;
             } catch (error) {
                 console.error('Erro ao processar transação:', error);
                 alert('Erro ao processar transação. Por favor, tente novamente.');
-                isSubmitting = false;
+                window.isSubmitting = false;
             }
         });
         console.log('Evento de submit adicionado ao formulário');
