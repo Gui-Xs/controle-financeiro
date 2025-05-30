@@ -156,6 +156,20 @@ async function addTransaction(e) {
         // Referência para o Firestore
         const userRef = db.collection('users').doc(user.uid);
         
+        // Verificar se já existem transações
+        const doc = await userRef.get();
+        const data = doc.data();
+        const existingTransactions = data?.transactions || [];
+        
+        // Verificar se a transação já existe
+        const existingTransaction = existingTransactions.find(tx => tx.id === transaction.id);
+        if (existingTransaction) {
+            console.log('Transação já existe:', transaction.id);
+            alert('Esta transação já foi adicionada anteriormente.');
+            window.isSubmitting = false;
+            return;
+        }
+
         // Adicionar transação usando set com merge
         await userRef.set({
             transactions: firebase.firestore.FieldValue.arrayUnion(transaction),
@@ -767,13 +781,31 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Carregar transações iniciais
         const transactions = await loadTransactionsFromFirebase();
-        if (transactions && transactions.length > 0) {
-            // Atualizar tabela
-            await updateTransactionsTable();
-            // Atualizar totais
-            await updateTotals();
-            // Atualizar gráfico
-            await updateChart();
+        console.log('Transações carregadas:', transactions);
+
+        // Verificar se o conteúdo principal está visível
+        const mainContent = document.getElementById('mainContent');
+        if (!mainContent || mainContent.style.display !== 'block') {
+            console.error('Acesso não autorizado ao conteúdo principal');
+            return;
+        }
+
+        // Atualizar tabela
+        await updateTransactionsTable();
+        // Atualizar totais
+        await updateTotals();
+        // Atualizar gráfico
+        await updateChart();
+
+        // Configurar eventos de filtro
+        const categoryFilterInit = document.getElementById('categoryFilter');
+        const monthFilterInit = document.getElementById('monthFilter');
+        
+        if (categoryFilterInit) {
+            categoryFilterInit.addEventListener('change', updateTransactionsTable);
+        }
+        if (monthFilterInit) {
+            monthFilterInit.addEventListener('change', updateTransactionsTable);
         }
 
         // Configurar filtro de categoria
