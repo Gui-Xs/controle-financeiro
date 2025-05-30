@@ -1074,10 +1074,39 @@ async function loadTransactionsFromFirebase() {
 // Adicionando eventos quando a página carregar
 document.addEventListener('DOMContentLoaded', async () => {
     try {
+        // Inicializar banco de dados e Firebase
         await initializeDatabase();
         
-        // Carregar transações do Firebase
+        // Carregar transações do Firebase e sincronizar
         await loadTransactionsFromFirebase();
+        
+        // Configurar listener para atualizações em tempo real
+        const user = firebase.auth().currentUser;
+        if (user) {
+            const firestore = firebase.firestore();
+            const userRef = firestore.collection('users').doc(user.uid);
+            
+            // Adicionar listener para atualizações em tempo real
+            userRef.onSnapshot(async (doc) => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    if (data.transactions && Array.isArray(data.transactions)) {
+                        // Limpar banco local
+                        await db.transactions.clear();
+                        
+                        // Adicionar todas as transações
+                        await db.transactions.bulkAdd(data.transactions);
+                        console.log('Transações sincronizadas em tempo real:', data.transactions.length);
+                        
+                        // Atualizar tabela
+                        await updateTransactionsTable();
+                        
+                        // Atualizar totais
+                        await updateTotals();
+                    }
+                }
+            });
+        }
         
         // Atualizar a tabela inicialmente
         updateTransactionsTable();
