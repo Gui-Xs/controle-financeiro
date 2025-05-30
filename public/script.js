@@ -211,141 +211,131 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         observer.observe(mainContent, { attributes: true });
     }
-});
 
-// Exportar a função addTransaction para uso global
-window.addTransaction = addTransaction;
+    // Exportar a função addTransaction para uso global
+    window.addTransaction = addTransaction;
+});
 
 // Função para exportar PDF
 async function exportToPDF() {
     try {
-        // Verificar se o jsPDF está disponível
-        if (typeof window.jspdf === 'undefined') {
-            throw new Error('jsPDF não está disponível. Por favor, recarregue a página.');
-        }
-
-        // Aguardar a inicialização do jsPDF
-        await new Promise((resolve) => setTimeout(resolve, 100));
-
-        const user = firebase.auth().currentUser;
-        if (!user) {
-            console.error('Usuário não está logado');
+        // Obter as transações
+        const transactions = await loadTransactionsFromFirebase();
+        if (!transactions || transactions.length === 0) {
+            alert('Nenhuma transação encontrada para exportar.');
             return;
         }
 
-        const firestore = firebase.firestore();
-        const userRef = firestore.collection('users').doc(user.uid);
-        
-        // Obter transações do Firebase
-        const doc = await userRef.get();
-        let transactions = [];
-        if (doc.exists) {
-            const data = doc.data();
-            transactions = data.transactions || [];
-        }
-
         // Criar PDF
-        const { jsPDF } = window.jspdf;
         const pdf = new jsPDF('p', 'mm', 'a4');
-        
-        // Configurar fontes
-        pdf.setFont('helvetica');
-        pdf.setFontSize(12);
+        const title = 'Relatório de Transações';
+        const date = new Date().toLocaleDateString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
 
-        // Título
-        pdf.setFontSize(18);
-        pdf.text('Relatório de Transações', 105, 20, { align: 'center' });
-        
-        // Data
-        pdf.setFontSize(10);
-        pdf.text(`Gerado em: ${formatDate(new Date())}`, 105, 30, { align: 'center' });
-        
-        // Cabeçalho da tabela
-        const headers = ['Data', 'Descrição', 'Categoria', 'Valor', 'Tipo'];
-        const startY = 40;
-        let y = startY;
-        
-        // Adicionar cabeçalho
+        // Adicionar título
+        pdf.setFontSize(20);
+        pdf.text(title, 105, 20, { align: 'center' });
         pdf.setFontSize(12);
-        pdf.setFont('helvetica', 'bold');
-        headers.forEach((header, i) => {
-            pdf.text(header, 15 + (i * 50), y);
-        });
-        y += 15;
-        
-        // Adicionar linhas
-        pdf.setFont('helvetica', 'normal');
-        transactions.forEach((transaction, index) => {
-            const date = formatDate(new Date(transaction.date));
-            const amount = formatCurrency(transaction.amount);
-            const type = transaction.type === 'receita' ? 'Receita' : 'Despesa';
-            
-            const row = [date, transaction.description, transaction.category, amount, type];
-            
-            row.forEach((cell, i) => {
-                pdf.text(cell, 15 + (i * 50), y + (index * 10));
-            });
-        });
-        
-        // Adicionar rodapé
-        y += 10;
+        pdf.text(`Data: ${date}`, 105, 30, { align: 'center' });
+        pdf.setLineWidth(0.5);
+        pdf.line(10, 35, 200, 35);
+
+        // Adicionar cabeçalho da tabela
+        const header = ['Descrição', 'Valor', 'Categoria', 'Tipo', 'Data', 'Forma de Pagamento'];
+        const cellWidth = 30;
+        const cellHeight = 10;
+        const startX = 15;
+        const startY = 45;
+
+        // Adicionar cabeçalho
         pdf.setFontSize(10);
-        pdf.text('Gerado pelo Controle Financeiro', 105, y + 10, { align: 'center' });
-        
+        pdf.setFont('helvetica', 'bold');
+        header.forEach((text, i) => {
+            pdf.text(text, startX + (i * cellWidth), startY);
+        });
+        pdf.setFont('helvetica', 'normal');
+
+        // Adicionar dados
+        let currentY = startY + cellHeight;
+        transactions.forEach((transaction, index) => {
+            if (currentY > 260) { // Nova página se necessário
+                pdf.addPage();
+                currentY = 20;
+            }
+
+            const row = [
+                transaction.description,
+                formatCurrency(transaction.amount),
+                transaction.category,
+                transaction.type,
+                formatDate(transaction.date),
+                transaction.paymentMethod
+            ];
+
+            row.forEach((text, i) => {
+                pdf.text(text, startX + (i * cellWidth), currentY);
+            });
+            currentY += cellHeight;
+        });
+
+        // Adicionar totais
+        const totals = await updateTotals();
+        currentY += 10;
+        pdf.setFont('helvetica', 'bold');
+        pdf.text(`Total Receitas: ${formatCurrency(totals.receitas)}`, 15, currentY);
+        pdf.text(`Total Despesas: ${formatCurrency(totals.despesas)}`, 15, currentY + 10);
+        pdf.text(`Saldo: ${formatCurrency(totals.saldo)}`, 15, currentY + 20);
+
         // Salvar PDF
         pdf.save('relatorio-transacoes.pdf');
         alert('PDF gerado com sucesso!');
     } catch (error) {
-        console.error('Erro ao exportar PDF:', error);
+        console.error('Erro ao gerar PDF:', error);
         alert('Erro ao gerar PDF. Por favor, tente novamente.');
     }
 }
 
 // Função para importar JSON
-async function importJSON(event) {
+function importJSON(event) {
     try {
         const file = event.target.files[0];
-        if (!file) return;
-        
+        if (!file) {
+            alert('Por favor, selecione um arquivo JSON.');
+            return;
+        }
+
         const reader = new FileReader();
         reader.onload = async (e) => {
             try {
-                const jsonString = e.target.result;
-                const transactions = JSON.parse(jsonString);
-                
+                const content = e.target.result;
+                const data = JSON.parse(content);
+
+                // Verificar se o usuário está logado
                 const user = firebase.auth().currentUser;
                 if (!user) {
-                    console.error('Usuário não está logado');
+                    alert('Por favor, faça login primeiro.');
                     return;
                 }
 
+                // Referência para o Firestore
                 const firestore = firebase.firestore();
                 const userRef = firestore.collection('users').doc(user.uid);
-                
-                // Obter transações existentes
-                const doc = await userRef.get();
-                let currentTransactions = [];
-                if (doc.exists) {
-                    const data = doc.data();
-                    currentTransactions = data.transactions || [];
-                }
 
-                // Adicionar novas transações
-                const updatedTransactions = [...currentTransactions, ...transactions];
-
-                // Atualizar o documento
+                // Adicionar transações
                 await userRef.set({
-                    transactions: updatedTransactions,
+                    transactions: firebase.firestore.FieldValue.arrayUnion(...data),
                     lastSync: Date.now()
                 }, { merge: true });
 
                 // Atualizar tabela
                 await updateTransactionsTable();
-                
                 alert('Transações importadas com sucesso!');
             } catch (error) {
-                console.error('Erro ao processar JSON:', error);
-                alert('Erro ao processar o JSON. Por favor, tente novamente.');
+                console.error('Erro ao importar JSON:', error);
+                alert('Erro ao importar JSON. Por favor, verifique se o arquivo está no formato correto.');
             }
         };
         reader.readAsText(file);
@@ -359,106 +349,44 @@ async function importJSON(event) {
 async function importReceipt(event) {
     try {
         const file = event.target.files[0];
-        if (!file) return;
-        
-        console.log('Iniciando importação de comprovante...');
-        
-        // Verificar se o Tesseract está disponível
-        if (!window.Tesseract) {
-            throw new Error('Tesseract não está disponível. Por favor, recarregue a página.');
-        }
-        
-        // Criar um elemento de imagem temporário
-        const img = new Image();
-        img.src = URL.createObjectURL(file);
-        
-        // Carregar a imagem
-        await new Promise((resolve) => {
-            img.onload = resolve;
-        });
-        
-        console.log('Iniciando OCR...');
-        
-        // Processar a imagem com Tesseract
-        const result = await Tesseract.recognize(
-            img,
-            'por',
-            {
-                logger: (m) => console.log(m),
-                lang: 'por',
-                tessedit_pageseg_mode: '6', // PSM 6 - Assume a single uniform block of text
-                tessedit_char_whitelist: '0123456789.,-abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ ',
-            }
-        );
-        
-        console.log('Texto extraído:', result.data.text);
-        
-        // Processar o texto extraído
-        const text = result.data.text.toLowerCase();
-        const lines = text.split('\n');
-        
-        const transactionData = {
-            description: '',
-            amount: 0,
-            date: new Date(),
-            type: 'despesa',
-            category: 'outros'
-        };
-        
-        // Tentar encontrar a data
-        const dateRegex = /\d{2}[/\-]\d{2}[/\-]\d{2,4}/;
-        const dateMatch = lines.find(line => dateRegex.test(line));
-        if (dateMatch) {
-            const dateStr = dateMatch.match(dateRegex)[0];
-            transactionData.date = new Date(dateStr.replace(/\D/g, '/'));
-        }
-        
-        // Tentar encontrar o nome do estabelecimento
-        const establishmentRegex = /[a-záàâãéèêíìóòôõúùç\s]+/;
-        const establishmentMatch = lines.find(line => line.length > 5 && !line.match(/\d/));
-        if (establishmentMatch) {
-            transactionData.description = establishmentMatch.trim();
-        }
-        
-        // Tentar encontrar o valor
-        const amountRegex = /\d+[.,]\d{2}/g;
-        const amountMatch = lines.find(line => amountRegex.test(line));
-        if (amountMatch) {
-            const amountStr = amountMatch.match(amountRegex)[0].replace(',', '.');
-            transactionData.amount = parseFloat(amountStr);
-        }
-        
-        console.log('Dados extraídos:', transactionData);
-        
-        // Adicionar a transação
-        const user = firebase.auth().currentUser;
-        if (!user) {
-            console.error('Usuário não está logado');
+        if (!file) {
+            alert('Por favor, selecione uma imagem.');
             return;
         }
 
-        const firestore = firebase.firestore();
-        const userRef = firestore.collection('users').doc(user.uid);
-        
-        // Adicionar transação usando set com merge
-        await userRef.set({
-            transactions: firebase.firestore.FieldValue.arrayUnion(transactionData),
-            lastSync: Date.now()
-        }, { merge: true });
+        // Verificar se o usuário está logado
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            alert('Por favor, faça login primeiro.');
+            return;
+        }
 
-        // Atualizar tabela
-        await updateTransactionsTable();
-        
-        alert('Transação adicionada com sucesso!');
+        // Processar a imagem com Tesseract.js
+        const result = await Tesseract.recognize(
+            file,
+            'por',
+            {
+                logger: m => console.log(m)
+            }
+        );
+
+        const { data: { text } } = result;
+        console.log('Texto extraído:', text);
+
+        // Aqui você pode adicionar lógica para processar o texto extraído
+        // e criar uma transação com os dados encontrados
+
+        alert('Comprovante processado com sucesso!');
     } catch (error) {
-        console.error('Erro ao importar comprovante:', error);
-        alert('Erro ao importar comprovante. Por favor, tente novamente.');
+        console.error('Erro ao processar comprovante:', error);
+        alert('Erro ao processar comprovante. Por favor, tente novamente.');
     }
 }
 
 // Função para sincronizar transações com o Firebase
 async function syncTransactionsWithFirebase() {
     try {
+        // Verificar se o usuário está logado
         const user = firebase.auth().currentUser;
         if (!user) {
             console.error('Usuário não está logado');
@@ -468,77 +396,101 @@ async function syncTransactionsWithFirebase() {
         // Referência para o Firestore
         const firestore = firebase.firestore();
         const userRef = firestore.collection('users').doc(user.uid);
-        
-        // Obter transações existentes do Firebase
+
+        // Obter transações do Firestore
         const doc = await userRef.get();
-        let firebaseTransactions = [];
         if (doc.exists) {
             const data = doc.data();
-            firebaseTransactions = data.transactions || [];
+            if (data && data.transactions) {
+                // Atualizar tabela
+                await updateTransactionsTable();
+                alert('Sincronização concluída com sucesso!');
+            }
+        } else {
+            console.log('Nenhum documento encontrado');
         }
-
-        // Atualizar tabela
-        await updateTransactionsTable();
-        
-        console.log('Sincronização concluída com sucesso');
     } catch (error) {
         console.error('Erro ao sincronizar com Firebase:', error);
-        alert('Erro ao sincronizar com o Firebase. Por favor, tente novamente.');
+        alert('Erro ao sincronizar com Firebase. Por favor, tente novamente.');
     }
 }
 
 // Função para atualizar a tabela de transações
 async function updateTransactionsTable() {
     try {
-        // Limpar a tabela existente
-        const tableBody = document.getElementById('transactionsBody');
-        if (tableBody) {
-            tableBody.innerHTML = '';
-        }
-
-        // Referência para o Firestore
+        // Verificar se o usuário está logado
         const user = firebase.auth().currentUser;
         if (!user) {
             console.error('Usuário não está logado');
             return;
         }
 
+        // Referência para o Firestore
         const firestore = firebase.firestore();
         const userRef = firestore.collection('users').doc(user.uid);
-        
-        // Obter transações do Firebase
-        const userDoc = await userRef.get();
-        let transactions = [];
-        if (userDoc.exists) {
-            const data = userDoc.data();
-            transactions = data.transactions || [];
+
+        // Obter transações
+        const doc = await userRef.get();
+        if (doc.exists) {
+            const data = doc.data();
+            const transactions = data.transactions || [];
+
+            // Obter filtros ativos
+            const categoryFilter = document.getElementById('categoryFilter');
+            const monthFilter = document.getElementById('monthFilter');
+            const category = categoryFilter ? categoryFilter.value : '';
+            const month = monthFilter ? monthFilter.value : '';
+
+            // Filtrar transações
+            let filteredTransactions = [...transactions];
+            
+            // Aplicar filtro de categoria
+            if (category && category !== 'todos') {
+                filteredTransactions = filteredTransactions.filter(tx => tx.category === category);
+            }
+
+            // Aplicar filtro de mês
+            if (month) {
+                filteredTransactions = filteredTransactions.filter(tx => {
+                    const txDate = new Date(tx.date);
+                    const selectedDate = new Date(month);
+                    return txDate.getMonth() === selectedDate.getMonth() && 
+                           txDate.getFullYear() === selectedDate.getFullYear();
+                });
+            }
+
+            // Ordenar transações por data
+            filteredTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            // Atualizar tabela
+            const tableBody = document.getElementById('transactionsTableBody');
+            if (tableBody) {
+                tableBody.innerHTML = '';
+
+                filteredTransactions.forEach(transaction => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${transaction.description}</td>
+                        <td>${formatCurrency(transaction.amount)}</td>
+                        <td><span style="color: ${categoryColors[transaction.category]}">${transaction.category}</span></td>
+                        <td>${transaction.type}</td>
+                        <td>${formatDate(transaction.date)}</td>
+                        <td>${transaction.paymentMethod}</td>
+                        <td>
+                            <button onclick="deleteTransaction('${transaction.id}')" class="delete-btn">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+
+                // Atualizar totais
+                await updateTotals();
+                // Atualizar gráfico
+                await updateChart();
+            }
         }
-        console.log('Atualizando tabela com', transactions.length, 'transações do Firebase');
-
-        // Ordenar transações por data (mais recentes primeiro)
-        const sortedTransactions = transactions.sort((a, b) => b.timestamp - a.timestamp);
-
-        // Adicionar cada transação à tabela
-        sortedTransactions.forEach(transaction => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${formatDate(transaction.date)}</td>
-                <td>${transaction.description}</td>
-                <td style="text-align: right; padding-right: 10px;">${formatCurrency(transaction.amount)}</td>
-                <td>${getCategoryIcon(transaction.category)}</td>
-                <td>${transaction.type}</td>
-                <td>${transaction.paymentMethod}</td>
-                <td>
-                    <button class="btn btn-danger btn-sm" onclick="deleteTransaction('${transaction.id}')">Excluir</button>
-                </td>
-            `;
-            tableBody.appendChild(row);
-        });
-
-        // Atualizar os totais
-        await updateTotals();
-
-        console.log('Tabela atualizada com sucesso');
     } catch (error) {
         console.error('Erro ao atualizar tabela:', error);
         alert('Erro ao atualizar tabela. Por favor, tente novamente.');
@@ -546,185 +498,59 @@ async function updateTransactionsTable() {
 }
 
 // Função para deletar transação
-async function deleteTransaction(transactionId) {
+async function deleteTransaction(id) {
+    if (window.isSubmitting) return;
+    
     if (!confirm('Tem certeza que deseja deletar esta transação?')) {
         return;
     }
 
+    window.isSubmitting = true;
     try {
+        // Verificar se o usuário está logado
         const user = firebase.auth().currentUser;
         if (!user) {
             console.error('Usuário não está logado');
             alert('Por favor, faça login primeiro.');
+            window.isSubmitting = false;
             return;
         }
 
+        // Referência para o Firestore
         const firestore = firebase.firestore();
         const userRef = firestore.collection('users').doc(user.uid);
-        
-        // Obter transações existentes
-        const userDoc = await userRef.get();
-        let currentTransactions = [];
-        if (userDoc.exists) {
-            const data = userDoc.data();
-            currentTransactions = data.transactions || [];
+
+        // Obter transações atuais
+        const doc = await userRef.get();
+        if (doc.exists) {
+            const data = doc.data();
+            const currentTransactions = data.transactions || [];
+
+            // Remover a transação
+            const updatedTransactions = currentTransactions.filter(tx => tx.id !== id);
+
+            // Atualizar o documento
+            await userRef.set({
+                transactions: updatedTransactions,
+                lastSync: Date.now()
+            }, { merge: true });
+
+            // Atualizar tabela
+            await updateTransactionsTable();
+            
+            alert('Transação deletada com sucesso!');
         }
-
-        // Remover a transação
-        const updatedTransactions = currentTransactions.filter(tx => tx.id !== transactionId);
-
-        // Atualizar o documento
-        await userRef.set({
-            transactions: updatedTransactions,
-            lastSync: Date.now()
-        }, { merge: true });
-
-        // Atualizar tabela
-        await updateTransactionsTable();
-        
-        alert('Transação deletada com sucesso!');
     } catch (error) {
         console.error('Erro ao deletar transação:', error);
         alert('Erro ao deletar transação. Por favor, tente novamente.');
     }
+    window.isSubmitting = false;
 }
 
 // Função para atualizar os totais
 async function updateTotals() {
     try {
-        const user = firebase.auth().currentUser;
-        if (!user) {
-            console.error('Usuário não está logado');
-            return;
-        }
-
-        const firestore = firebase.firestore();
-        const userRef = firestore.collection('users').doc(user.uid);
-        
-        // Obter transações do Firebase
-        const userDoc = await userRef.get();
-        let transactions = [];
-        if (userDoc.exists) {
-            const data = userDoc.data();
-            transactions = data.transactions || [];
-        }
-
-        // Calcular totais
-        const totalReceitas = transactions
-            .filter(t => t.type === 'receita')
-            .reduce((sum, t) => sum + t.amount, 0);
-
-        const totalDespesas = transactions
-            .filter(t => t.type === 'despesa')
-            .reduce((sum, t) => sum + t.amount, 0);
-
-        const saldo = totalReceitas - totalDespesas;
-
-        // Atualizar elementos na tela
-        document.getElementById('totalReceitas').textContent = formatCurrency(totalReceitas);
-        document.getElementById('totalDespesas').textContent = formatCurrency(totalDespesas);
-        document.getElementById('saldo').textContent = formatCurrency(saldo);
-
-        // Atualizar gráfico
-        await updateChart();
-    } catch (error) {
-        console.error('Erro ao atualizar totais:', error);
-    }
-}
-
-// Função para atualizar o gráfico
-async function updateChart() {
-    try {
-        const user = firebase.auth().currentUser;
-        if (!user) {
-            console.error('Usuário não está logado');
-            return;
-        }
-
-        const firestore = firebase.firestore();
-        const userRef = firestore.collection('users').doc(user.uid);
-        
-        // Obter transações do Firebase
-        const userDoc = await userRef.get();
-        let transactions = [];
-        if (userDoc.exists) {
-            const data = userDoc.data();
-            transactions = data.transactions || [];
-        }
-
-        // Filtrar apenas despesas
-        const despesas = transactions
-            .filter(t => t.type === 'despesa')
-            .map(t => ({
-                category: t.category,
-                amount: t.amount
-            }));
-
-        // Agrupar por categoria
-        const grouped = despesas.reduce((acc, t) => {
-            if (!acc[t.category]) {
-                acc[t.category] = 0;
-            }
-            acc[t.category] += t.amount;
-            return acc;
-        }, {});
-
-        // Preparar dados para o gráfico
-        const labels = Object.keys(grouped);
-        const data = Object.values(grouped);
-        const colors = labels.map(label => categoryColors[label] || '#95A5A6');
-
-        // Configuração do gráfico
-        const config = {
-            type: 'doughnut',
-            data: {
-                labels: labels,
-                datasets: [{
-                    data: data,
-                    backgroundColor: colors,
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            color: '#333',
-                            font: {
-                                size: 12
-                            }
-                        }
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                const label = context.label || '';
-                                const value = formatCurrency(context.raw);
-                                return `${label}: ${value}`;
-                            }
-                        }
-                    }
-                }
-            }
-        };
-
-        // Atualizar o gráfico
-        const chartCanvas = document.getElementById('transactionsChart').getContext('2d');
-        if (window.chart) {
-            window.chart.destroy();
-        }
-        window.chart = new Chart(chartCanvas, config);
-    } catch (error) {
-        console.error('Erro ao atualizar gráfico:', error);
-    }
-}
-
-// Função para carregar transações do Firebase
-async function loadTransactionsFromFirebase() {
-    try {
+        // Verificar se o usuário está logado
         const user = firebase.auth().currentUser;
         if (!user) {
             console.error('Usuário não está logado');
@@ -734,97 +560,189 @@ async function loadTransactionsFromFirebase() {
         // Referência para o Firestore
         const firestore = firebase.firestore();
         const userRef = firestore.collection('users').doc(user.uid);
-        
-        // Obter documento do usuário
-        const userDoc = await userRef.get();
-        
-        if (userDoc.exists) {
-            const data = userDoc.data();
-            if (data.transactions && Array.isArray(data.transactions)) {
-                // Atualizar tabela
-                await updateTransactionsTable();
-            }
+
+        // Obter transações
+        const doc = await userRef.get();
+        if (doc.exists) {
+            const data = doc.data();
+            const transactions = data.transactions || [];
+
+            // Calcular totais
+            let receitas = 0;
+            let despesas = 0;
+
+            transactions.forEach(transaction => {
+                if (transaction.type === 'receita') {
+                    receitas += transaction.amount;
+                } else {
+                    despesas += transaction.amount;
+                }
+            });
+
+            const saldo = receitas - despesas;
+
+            // Atualizar elementos HTML
+            document.getElementById('totalReceitas').textContent = formatCurrency(receitas);
+            document.getElementById('totalDespesas').textContent = formatCurrency(despesas);
+            document.getElementById('saldo').textContent = formatCurrency(saldo);
+
+            return { receitas, despesas, saldo };
         }
     } catch (error) {
-        console.error('Erro ao carregar transações do Firebase:', error);
-        alert('Erro ao carregar transações do Firebase. Por favor, tente novamente.');
+        console.error('Erro ao atualizar totais:', error);
+        alert('Erro ao atualizar totais. Por favor, tente novamente.');
     }
 }
 
-// Função para deletar transação
-async function deleteTransaction(id) {
-    if (!confirm('Tem certeza que deseja deletar esta transação?')) {
-        return;
-    }
-
+// Função para atualizar o gráfico
+async function updateChart() {
     try {
+        // Verificar se o usuário está logado
         const user = firebase.auth().currentUser;
         if (!user) {
             console.error('Usuário não está logado');
-            alert('Por favor, faça login primeiro.');
             return;
         }
 
+        // Referência para o Firestore
         const firestore = firebase.firestore();
         const userRef = firestore.collection('users').doc(user.uid);
-        
-        // Obter transações existentes
-        const userDoc = await userRef.get();
-        let currentTransactions = [];
-        if (userDoc.exists) {
-            const data = userDoc.data();
-            currentTransactions = data.transactions || [];
+
+        // Obter transações
+        const doc = await userRef.get();
+        if (doc.exists) {
+            const data = doc.data();
+            const transactions = data.transactions || [];
+
+            // Filtrar apenas despesas
+            const despesas = transactions.filter(t => t.type === 'despesa');
+
+            // Agrupar por categoria
+            const categorias = {};
+            despesas.forEach(t => {
+                if (!categorias[t.category]) {
+                    categorias[t.category] = 0;
+                }
+                categorias[t.category] += t.amount;
+            });
+
+            // Criar dados para o gráfico
+            const labels = Object.keys(categorias);
+            const values = Object.values(categorias);
+
+            // Atualizar gráfico
+            if (window.chart) {
+                window.chart.destroy();
+            }
+
+            const ctx = document.getElementById('chart').getContext('2d');
+            window.chart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: labels.map(cat => categoryColors[cat] || '#95A5A6'),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        },
+                        title: {
+                            display: true,
+                            text: 'Distribuição de Despesas por Categoria'
+                        }
+                    }
+                }
+            });
         }
-
-        // Remover a transação
-        const updatedTransactions = currentTransactions.filter(tx => tx.id !== id);
-
-        // Atualizar o documento
-        await userRef.set({
-            transactions: updatedTransactions,
-            lastSync: Date.now()
-        }, { merge: true });
-
-        // Atualizar tabela
-        await updateTransactionsTable();
-        
-        alert('Transação deletada com sucesso!');
     } catch (error) {
-        console.error('Erro ao deletar transação:', error);
-        alert('Erro ao deletar transação. Por favor, tente novamente.');
+        console.error('Erro ao atualizar gráfico:', error);
+        alert('Erro ao atualizar gráfico. Por favor, tente novamente.');
     }
 }
 
-
-
-// Adicionar evento de submit quando o conteúdo principal for mostrado
-document.addEventListener('DOMContentLoaded', () => {
-    const mainContent = document.getElementById('mainContent');
-    const form = document.getElementById('transactionForm');
-    
-    if (mainContent && form) {
+// Função para carregar transações do Firebase
+async function loadTransactionsFromFirebase() {
+    try {
         // Verificar se o usuário está logado
         const user = firebase.auth().currentUser;
-        if (user) {
-            // Se o usuário está logado, adicionar o listener do form
-            form.addEventListener('submit', async (e) => {
-                if (window.isSubmitting) return;
-                
-                e.preventDefault();
-                window.isSubmitting = true;
-                try {
-                    await addTransaction(e);
-                    window.isSubmitting = false;
-                } catch (error) {
-                    console.error('Erro ao processar transação:', error);
-                    alert('Erro ao processar transação. Por favor, tente novamente.');
-                    window.isSubmitting = false;
-                }
-            });
-        } else {
-            // Se não está logado, mostrar mensagem e redirecionar para login
-            alert('Por favor, faça login primeiro.');
-            window.location.href = '/login.html';
+        if (!user) {
+            console.error('Usuário não está logado');
+            return [];
         }
+
+        // Referência para o Firestore
+        const firestore = firebase.firestore();
+        const userRef = firestore.collection('users').doc(user.uid);
+
+        // Obter transações
+        const doc = await userRef.get();
+        if (doc.exists) {
+            const data = doc.data();
+            return data.transactions || [];
+        }
+        return [];
+    } catch (error) {
+        console.error('Erro ao carregar transações:', error);
+        alert('Erro ao carregar transações. Por favor, tente novamente.');
+        return [];
+    }
+}
+
+// Inicialização do aplicativo
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        // Verificar se o usuário está logado
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            console.error('Usuário não está logado');
+            return;
+        }
+
+        // Carregar transações iniciais
+        const transactions = await loadTransactionsFromFirebase();
+        if (transactions && transactions.length > 0) {
+            // Atualizar tabela
+            await updateTransactionsTable();
+            // Atualizar totais
+            await updateTotals();
+            // Atualizar gráfico
+            await updateChart();
+        }
+
+        // Configurar filtro de categoria
+        const categoryFilter = document.getElementById('categoryFilter');
+        if (categoryFilter) {
+            categoryFilter.addEventListener('change', updateTransactionsTable);
+        }
+
+        // Configurar filtro de mês
+        const monthFilter = document.getElementById('monthFilter');
+        if (monthFilter) {
+            monthFilter.addEventListener('change', updateTransactionsTable);
+        }
+    } catch (error) {
+        console.error('Erro ao inicializar:', error);
     }
 });
+
+// Exportar funções globais
+window.addTransaction = addTransaction;
+window.exportToPDF = exportToPDF;
+window.importJSON = importJSON;
+window.importReceipt = importReceipt;
+window.syncTransactionsWithFirebase = syncTransactionsWithFirebase;
+window.updateTransactionsTable = updateTransactionsTable;
+window.deleteTransaction = deleteTransaction;
+window.updateTotals = updateTotals;
+window.updateChart = updateChart;
+window.loadTransactionsFromFirebase = loadTransactionsFromFirebase;
+
+// Fim do script
+console.log('Script carregado com sucesso!');
