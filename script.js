@@ -600,6 +600,12 @@ async function updateTransactionsTable() {
             const date = transaction.date || new Date().toISOString();
             const formattedDate = formatDate(date);
             
+            // Verificar se a data está no formato correto
+            if (!formattedDate || formattedDate.includes('undefined')) {
+                console.log('Data inválida encontrada:', transaction.date);
+                return; // Pular transações com data inválida
+            }
+            
             const amount = formatCurrency(transaction.amount);
             const type = transaction.type === 'receita' ? 'Receita' : 'Despesa';
             
@@ -623,6 +629,9 @@ async function updateTransactionsTable() {
                     </button>
                 </div>
             `;
+            
+            // Adicionar o ID da transação como atributo do elemento
+            li.setAttribute('data-id', transaction.id);
             
             transactionsList.appendChild(li);
         });
