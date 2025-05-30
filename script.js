@@ -547,6 +547,9 @@ async function syncTransactionsWithFirebase() {
             lastSync: Date.now()
         }, { merge: true });
 
+        // Atualizar a tabela após sincronizar com Firebase
+        await updateTransactionsTable();
+
         console.log('Transações sincronizadas com sucesso com o Firebase');
     } catch (error) {
         console.error('Erro ao sincronizar com Firebase:', error);
@@ -651,9 +654,6 @@ async function addTransaction(e) {
         // Adicionar a transação
         const result = await db.transactions.add(transaction);
         console.log('Transação salva com sucesso:', result);
-        
-        // Atualizar a tabela
-        await updateTransactionsTable();
         
         // Sincronizar com Firebase
         await syncTransactionsWithFirebase();
