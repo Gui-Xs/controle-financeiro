@@ -551,8 +551,10 @@ async function addTransaction(e) {
             category,
             type,
             date,
+            paymentMethod: document.getElementById('paymentMethod').value || 'dinheiro',
             frequency: document.getElementById('frequency').value,
-            endDate: document.getElementById('endDate').value
+            endDate: document.getElementById('endDate').value,
+            timestamp: Date.now()  // Adicionando timestamp para melhor ordenação
         };
 
         // Verificar se o banco de dados está inicializado
@@ -635,14 +637,21 @@ async function updateTransactionsTable() {
             ? transactions 
             : transactions.filter(t => t.category === categoryFilter);
 
-        // Ordenar transações por data (mais recentes primeiro)
+        // Ordenar transações por data e timestamp (mais recentes primeiro)
         filteredTransactions.sort((a, b) => {
-            // Primeiro, tentar usar o timestamp se existir
+            // Se tiver timestamp, usar timestamp
             if (a.timestamp && b.timestamp) {
                 return b.timestamp - a.timestamp;
             }
-            // Se não tiver timestamp, usar a data
-            return new Date(b.date) - new Date(a.date);
+            // Se não tiver timestamp, usar data
+            const dateA = new Date(a.date);
+            const dateB = new Date(b.date);
+            
+            // Se a data for inválida, usar timestamp atual
+            const validDateA = !isNaN(dateA.getTime()) ? dateA : new Date(a.timestamp || Date.now());
+            const validDateB = !isNaN(dateB.getTime()) ? dateB : new Date(b.timestamp || Date.now());
+            
+            return validDateB - validDateA;
         });
 
         // Adicionar cada transação à tabela
