@@ -1,9 +1,14 @@
 // Funções auxiliares
 function formatCurrency(value) {
-    return new Intl.NumberFormat('pt-BR', {
+    // Mantém o valor absoluto para formatação
+    const absValue = Math.abs(value);
+    // Formata o valor
+    const formatted = new Intl.NumberFormat('pt-BR', {
         style: 'currency',
         currency: 'BRL'
-    }).format(value);
+    }).format(absValue);
+    // Adiciona o sinal se for negativo
+    return value < 0 ? `-${formatted}` : formatted;
 }
 
 // Mapeamento de categorias para ícones e cores
