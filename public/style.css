@@ -264,7 +264,7 @@ main {
 
 .transaction-details {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: 300px 150px 150px 200px 150px;
     gap: 1rem;
     align-items: center;
     width: 100%;
@@ -287,6 +287,64 @@ main {
     font-weight: 500;
     opacity: 0.7;
     min-width: 0;
+    text-align: left;
+}
+
+/* Estilos para transações */
+.transaction-item {
+    display: grid;
+    grid-template-columns: 300px 150px 150px 200px 150px;
+    gap: 1rem;
+    padding: 1rem;
+    background-color: rgba(255, 255, 255, 0.02);
+    border-radius: 0.5rem;
+    margin-bottom: 0.5rem;
+    transition: background-color var(--transition);
+    align-items: center;
+    min-height: 50px;
+    height: 50px;
+    box-sizing: border-box;
+}
+
+.transaction-item:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    height: 50px;
+}
+
+.transaction-item span {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    transition: background-color var(--transition);
+    min-width: 0;
+    height: 100%;
+    box-sizing: border-box;
+    text-align: left;
+}
+
+.transaction-item .amount {
+    justify-content: flex-end;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    background-color: rgba(255, 255, 255, 0.05);
+    height: 100%;
+    display: flex;
+    align-items: center;
+    text-align: right;
+}
+
+.transaction-item .date {
+    justify-content: flex-end;
+    text-align: right;
+}
+
+.transaction-item .payment-method {
+    justify-content: flex-end;
+    text-align: right;
 }
 
 /* Estilos para transações */
