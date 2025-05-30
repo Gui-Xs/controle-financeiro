@@ -771,7 +771,14 @@ async function loadTransactionsFromFirebase() {
         const doc = await userRef.get();
         if (doc.exists) {
             const data = doc.data();
-            return data.transactions || [];
+            const transactions = data.transactions || [];
+            
+            // Ordenar transações por data (do mais recente para o mais antigo)
+            return transactions.sort((a, b) => {
+                const dateA = new Date(a.date);
+                const dateB = new Date(b.date);
+                return dateB - dateA; // Retorna positivo se dateB é maior (mais recente)
+            });
         }
         return [];
     } catch (error) {
