@@ -487,38 +487,39 @@ async function updateTransactionsTable() {
             // Ordenar transações por data
             filteredTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-            // Atualizar tabela
-            const tableBody = document.getElementById('transactionsTableBody');
-            if (tableBody) {
-                console.log('Encontrado elemento tableBody');
-                tableBody.innerHTML = '';
+            // Atualizar lista de transações
+            const transactionsList = document.getElementById('transactionsList');
+            if (transactionsList) {
+                console.log('Encontrado elemento transactionsList');
+                transactionsList.innerHTML = '';
 
                 filteredTransactions.forEach(transaction => {
-                    console.log('Adicionando transação à tabela:', transaction);
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${transaction.description}</td>
-                        <td>${formatCurrency(transaction.amount)}</td>
-                        <td><span style="color: ${categoryColors[transaction.category]}">${transaction.category}</span></td>
-                        <td>${transaction.type}</td>
-                        <td>${formatDate(transaction.date)}</td>
-                        <td>${transaction.paymentMethod}</td>
-                        <td>
-                            <button onclick="deleteTransaction('${transaction.id}')" class="delete-btn">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </td>
+                    console.log('Adicionando transação à lista:', transaction);
+                    const listItem = document.createElement('li');
+                    listItem.className = 'transaction-item';
+                    listItem.innerHTML = `
+                        <div class="transaction-details">
+                            <span class="description">${transaction.description}</span>
+                            <span class="amount">${formatCurrency(transaction.amount)}</span>
+                            <span class="category" style="color: ${categoryColors[transaction.category]}">${transaction.category}</span>
+                            <span class="type">${transaction.type}</span>
+                            <span class="date">${formatDate(transaction.date)}</span>
+                            <span class="payment-method">${transaction.paymentMethod}</span>
+                        </div>
+                        <button onclick="deleteTransaction('${transaction.id}')" class="delete-btn">
+                            <i class="fas fa-trash"></i>
+                        </button>
                     `;
-                    tableBody.appendChild(row);
+                    transactionsList.appendChild(listItem);
                 });
 
-                console.log('Tabela atualizada com sucesso');
+                console.log('Lista de transações atualizada com sucesso');
                 // Atualizar totais
                 await updateTotals();
                 // Atualizar gráfico
                 await updateChart();
             } else {
-                console.error('Elemento tableBody não encontrado');
+                console.error('Elemento transactionsList não encontrado');
             }
         } else {
             console.error('Documento do usuário não encontrado');

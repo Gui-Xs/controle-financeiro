@@ -196,6 +196,57 @@ body {
     box-shadow: var(--card-shadow);
 }
 
+.transactions-list {
+    list-style: none;
+    padding: 0;
+    margin-top: 16px;
+}
+
+.transaction-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    transition: background-color 0.2s;
+}
+
+.transaction-item:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.transaction-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+    gap: 16px;
+    align-items: center;
+}
+
+.transaction-details span {
+    color: var(--text-color);
+    font-size: 0.9rem;
+}
+
+.transaction-details .amount {
+    font-weight: 500;
+}
+
+.delete-btn {
+    background: none;
+    border: none;
+    color: var(--danger-color);
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.delete-btn:hover {
+    background-color: rgba(239, 68, 68, 0.1);
+}
+
 .transactions-header {
     display: flex;
     justify-content: space-between;
