@@ -147,7 +147,7 @@ async function addTransaction(e) {
         
         // Adicionar transação usando set com merge
         await userRef.set({
-            transactions: db.FieldValue.arrayUnion(transaction),
+            transactions: firebase.firestore.FieldValue.arrayUnion(transaction),
             lastSync: Date.now()
         }, { merge: true });
 
