@@ -47,11 +47,32 @@ function getCategoryIcon(category) {
 // Função para formatar data
 function formatDate(date) {
     try {
+        // Se date for uma string no formato YYYY-MM-DD
         if (typeof date === 'string' && date.match(/^\d{4}-\d{2}-\d{2}$/)) {
             const [year, month, day] = date.split('-');
             return `${day}/${month}/${year}`;
         }
-        return new Intl.DateTimeFormat('pt-BR').format(new Date(date));
+
+        // Se for uma string em outro formato, tentar converter
+        if (typeof date === 'string') {
+            // Remover qualquer caractere inválido
+            date = date.replace(/[^\d-]/g, '');
+            // Se ainda tiver mais de 10 caracteres, pegar os últimos 10
+            if (date.length > 10) {
+                date = date.slice(-10);
+            }
+            // Se tiver menos de 10 caracteres, usar data atual
+            if (date.length !== 10) {
+                date = new Date().toISOString().split('T')[0];
+            }
+            
+            // Agora devemos ter uma string no formato YYYY-MM-DD
+            const [year, month, day] = date.split('-');
+            return `${day}/${month}/${year}`;
+        }
+
+        // Se nada der certo, usar a data atual
+        return new Intl.DateTimeFormat('pt-BR').format(new Date());
     } catch (error) {
         console.error('Erro ao formatar data:', error);
         return new Intl.DateTimeFormat('pt-BR').format(new Date());
@@ -61,87 +82,113 @@ function formatDate(date) {
 // Variável para controlar o estado de carregamento
 window.isSubmitting = false;
 
-// Função para adicionar transação
-window.addTransaction = async function(e) {
-    if (window.isSubmitting) return;
-    
-    e.preventDefault();
-    window.isSubmitting = true;
-    
+// Adicionar evento de submit do formulário
+function setupTransactionForm() {
+    const form = document.getElementById('transactionForm');
+    if (form) {
+        // Remover qualquer evento existente
+        form.removeEventListener('submit', addTransaction);
+        
+        // Adicionar novo evento
+        form.addEventListener('submit', async (e) => {
+            if (window.isSubmitting) return;
+            
+            e.preventDefault();
+            window.isSubmitting = true;
+            try {
+                await addTransaction(e);
+                window.isSubmitting = false;
+            } catch (error) {
+                console.error('Erro ao processar transação:', error);
+                alert('Erro ao processar transação. Por favor, tente novamente.');
+                window.isSubmitting = false;
+            }
+        });
+        console.log('Evento de submit adicionado ao formulário');
+    } else {
+        console.log('Formulário não encontrado inicialmente');
+    }
+}
+
+// Adicionar evento de submit quando o conteúdo principal for mostrado
+document.addEventListener('DOMContentLoaded', () => {
+    const mainContent = document.getElementById('mainContent');
+    if (mainContent.style.display === 'block') {
+        setupTransactionForm();
+    } else {
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach(mutation => {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                    if (mainContent.style.display === 'block') {
+                        setupTransactionForm();
+                        observer.disconnect();
+                    }
+                }
+            });
+        });
+        observer.observe(mainContent, { attributes: true });
+    }
+});
+
+// Configurar o evento de submit do formulário apenas uma vez
+function setupTransactionForm() {
+    const form = document.getElementById('transactionForm');
+    if (form) {
+        // Remover qualquer evento existente
+        form.removeEventListener('submit', addTransaction);
+        
+        // Adicionar novo evento
+        form.addEventListener('submit', async (e) => {
+            if (window.isSubmitting) return;
+            
+            e.preventDefault();
+            window.isSubmitting = true;
+            try {
+                await addTransaction(e);
+                window.isSubmitting = false;
+            } catch (error) {
+                console.error('Erro ao processar transação:', error);
+                alert('Erro ao processar transação. Por favor, tente novamente.');
+                window.isSubmitting = false;
+            }
+        });
+        console.log('Evento de submit adicionado ao formulário');
+// Função para inicializar o banco de dados
+async function initializeDatabase() {
     try {
         const user = firebase.auth().currentUser;
         if (!user) {
             console.error('Usuário não está logado');
-            alert('Por favor, faça login primeiro.');
-            window.isSubmitting = false;
-            return;
+            return null;
         }
 
-        const description = document.getElementById('description').value.trim();
-        const amount = parseFloat(document.getElementById('amount').value);
-        const dateInput = document.getElementById('date').value;
-        const category = document.getElementById('category').value;
-        const type = document.getElementById('type').value;
-        const paymentMethod = document.getElementById('paymentMethod').value;
-        
-        if (!description || !amount || !category || !type || !paymentMethod) {
-            alert('Por favor, preencha todos os campos obrigatórios.');
-            window.isSubmitting = false;
-            return;
-        }
-
-        if (isNaN(amount) || amount <= 0) {
-            alert('Por favor, insira um valor válido.');
-            window.isSubmitting = false;
-            return;
-        }
-
-        const date = dateInput || new Date().toISOString().split('T')[0];
-        if (!date || date.includes('undefined') || date.includes('NaN')) {
-            alert('Data inválida. Usando data atual.');
-            date = new Date().toISOString().split('T')[0];
-        }
-
-        const transaction = {
-            id: Date.now() + Math.random().toString(36).substr(2, 9),
-            description,
-            amount: Math.abs(amount),
-            category,
-            type,
-            date,
-            paymentMethod: paymentMethod.toLowerCase(),
-            frequency: document.getElementById('frequency').value || '',
-            endDate: document.getElementById('endDate').value || '',
-            timestamp: Date.now()
-        };
-
+        // Referência para o Firestore
         const firestore = firebase.firestore();
         const userRef = firestore.collection('users').doc(user.uid);
         
+        // Garantir que o documento do usuário exista
         await userRef.set({
-            transactions: firebase.firestore.FieldValue.arrayUnion(transaction),
+            transactions: [],
             lastSync: Date.now()
         }, { merge: true });
 
-        document.getElementById('transactionForm').reset();
-        await updateTransactionsTable();
-        
-        alert('Transação adicionada com sucesso!');
-        window.isSubmitting = false;
+        console.log('Firebase inicializado com sucesso');
+        return userRef;
     } catch (error) {
-        console.error('Erro ao adicionar transação:', error);
-        alert('Erro ao adicionar transação. Por favor, tente novamente.');
-        window.isSubmitting = false;
+        console.error('Erro ao inicializar Firebase:', error);
+        throw error;
     }
-};
+}
 
 // Função para exportar PDF
 async function exportToPDF() {
     try {
+        // Verificar se o jsPDF está disponível
         if (typeof window.jspdf === 'undefined') {
             throw new Error('jsPDF não está disponível. Por favor, recarregue a página.');
         }
 
+        // Aguardar a inicialização do jsPDF
         await new Promise((resolve) => setTimeout(resolve, 100));
 
         const user = firebase.auth().currentUser;
@@ -153,6 +200,7 @@ async function exportToPDF() {
         const firestore = firebase.firestore();
         const userRef = firestore.collection('users').doc(user.uid);
         
+        // Obter transações do Firebase
         const doc = await userRef.get();
         let transactions = [];
         if (doc.exists) {
@@ -160,22 +208,28 @@ async function exportToPDF() {
             transactions = data.transactions || [];
         }
 
+        // Criar PDF
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF('p', 'mm', 'a4');
         
+        // Configurar fontes
         pdf.setFont('helvetica');
         pdf.setFontSize(12);
 
+        // Título
         pdf.setFontSize(18);
         pdf.text('Relatório de Transações', 105, 20, { align: 'center' });
         
+        // Data
         pdf.setFontSize(10);
         pdf.text(`Gerado em: ${formatDate(new Date())}`, 105, 30, { align: 'center' });
         
+        // Cabeçalho da tabela
         const headers = ['Data', 'Descrição', 'Categoria', 'Valor', 'Tipo'];
         const startY = 40;
         let y = startY;
         
+        // Adicionar cabeçalho
         pdf.setFontSize(12);
         pdf.setFont('helvetica', 'bold');
         headers.forEach((header, i) => {
@@ -183,6 +237,7 @@ async function exportToPDF() {
         });
         y += 15;
         
+        // Adicionar linhas
         pdf.setFont('helvetica', 'normal');
         transactions.forEach((transaction, index) => {
             const date = formatDate(new Date(transaction.date));
@@ -196,10 +251,12 @@ async function exportToPDF() {
             });
         });
         
+        // Adicionar rodapé
         y += 10;
         pdf.setFontSize(10);
         pdf.text('Gerado pelo Controle Financeiro', 105, y + 10, { align: 'center' });
         
+        // Salvar PDF
         pdf.save('relatorio-transacoes.pdf');
         alert('PDF gerado com sucesso!');
     } catch (error) {
@@ -229,6 +286,7 @@ async function importJSON(event) {
                 const firestore = firebase.firestore();
                 const userRef = firestore.collection('users').doc(user.uid);
                 
+                // Obter transações existentes
                 const doc = await userRef.get();
                 let currentTransactions = [];
                 if (doc.exists) {
@@ -236,13 +294,16 @@ async function importJSON(event) {
                     currentTransactions = data.transactions || [];
                 }
 
+                // Adicionar novas transações
                 const updatedTransactions = [...currentTransactions, ...transactions];
 
+                // Atualizar o documento
                 await userRef.set({
                     transactions: updatedTransactions,
                     lastSync: Date.now()
                 }, { merge: true });
 
+                // Atualizar tabela
                 await updateTransactionsTable();
                 
                 alert('Transações importadas com sucesso!');
@@ -264,28 +325,39 @@ async function importReceipt(event) {
         const file = event.target.files[0];
         if (!file) return;
         
+        console.log('Iniciando importação de comprovante...');
+        
+        // Verificar se o Tesseract está disponível
         if (!window.Tesseract) {
             throw new Error('Tesseract não está disponível. Por favor, recarregue a página.');
         }
         
+        // Criar um elemento de imagem temporário
         const img = new Image();
         img.src = URL.createObjectURL(file);
         
+        // Carregar a imagem
         await new Promise((resolve) => {
             img.onload = resolve;
         });
         
+        console.log('Iniciando OCR...');
+        
+        // Processar a imagem com Tesseract
         const result = await Tesseract.recognize(
             img,
             'por',
             {
                 logger: (m) => console.log(m),
                 lang: 'por',
-                tessedit_pageseg_mode: '6',
-                tessedit_char_whitelist: '0123456789.,-abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ '
+                tessedit_pageseg_mode: '6', // PSM 6 - Assume a single uniform block of text
+                tessedit_char_whitelist: '0123456789.,-abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ ',
             }
         );
         
+        console.log('Texto extraído:', result.data.text);
+        
+        // Processar o texto extraído
         const text = result.data.text.toLowerCase();
         const lines = text.split('\n');
         
@@ -297,19 +369,22 @@ async function importReceipt(event) {
             category: 'outros'
         };
         
-        const dateRegex = /\d{2}[/-]\d{2}[/-]\d{2,4}/;
+        // Tentar encontrar a data
+        const dateRegex = /\d{2}[/\-]\d{2}[/\-]\d{2,4}/;
         const dateMatch = lines.find(line => dateRegex.test(line));
         if (dateMatch) {
             const dateStr = dateMatch.match(dateRegex)[0];
             transactionData.date = new Date(dateStr.replace(/\D/g, '/'));
         }
         
+        // Tentar encontrar o nome do estabelecimento
         const establishmentRegex = /[a-záàâãéèêíìóòôõúùç\s]+/;
         const establishmentMatch = lines.find(line => line.length > 5 && !line.match(/\d/));
         if (establishmentMatch) {
             transactionData.description = establishmentMatch.trim();
         }
         
+        // Tentar encontrar o valor
         const amountRegex = /\d+[.,]\d{2}/g;
         const amountMatch = lines.find(line => amountRegex.test(line));
         if (amountMatch) {
@@ -317,6 +392,9 @@ async function importReceipt(event) {
             transactionData.amount = parseFloat(amountStr);
         }
         
+        console.log('Dados extraídos:', transactionData);
+        
+        // Adicionar a transação
         const user = firebase.auth().currentUser;
         if (!user) {
             console.error('Usuário não está logado');
@@ -326,14 +404,27 @@ async function importReceipt(event) {
         const firestore = firebase.firestore();
         const userRef = firestore.collection('users').doc(user.uid);
         
+        // Obter transações existentes
+        const doc = await userRef.get();
+        let currentTransactions = [];
+        if (doc.exists) {
+            const data = doc.data();
+            currentTransactions = data.transactions || [];
+        }
+
+        // Adicionar nova transação
+        const updatedTransactions = [...currentTransactions, transactionData];
+
+        // Atualizar o documento
         await userRef.set({
-            transactions: firebase.firestore.FieldValue.arrayUnion(transactionData),
+            transactions: updatedTransactions,
             lastSync: Date.now()
         }, { merge: true });
 
+        // Atualizar tabela
         await updateTransactionsTable();
         
-        alert('Transação adicionada com sucesso!');
+        alert('Comprovante importado com sucesso!');
     } catch (error) {
         console.error('Erro ao importar comprovante:', error);
         alert('Erro ao importar comprovante. Por favor, tente novamente.');
@@ -349,9 +440,11 @@ async function syncTransactionsWithFirebase() {
             return;
         }
 
+        // Referência para o Firestore
         const firestore = firebase.firestore();
         const userRef = firestore.collection('users').doc(user.uid);
         
+        // Obter transações existentes do Firebase
         const doc = await userRef.get();
         let firebaseTransactions = [];
         if (doc.exists) {
@@ -359,6 +452,7 @@ async function syncTransactionsWithFirebase() {
             firebaseTransactions = data.transactions || [];
         }
 
+        // Atualizar tabela
         await updateTransactionsTable();
         
         console.log('Sincronização concluída com sucesso');
@@ -368,14 +462,122 @@ async function syncTransactionsWithFirebase() {
     }
 }
 
+
+
+// Função para adicionar transação
+window.addTransaction = async function(e) {
+    e.preventDefault();
+    
+    try {
+        // Verificar se o usuário está logado
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            console.error('Usuário não está logado');
+            alert('Por favor, faça login primeiro.');
+            return;
+        }
+
+        // Obter os valores do formulário
+        const description = document.getElementById('description').value.trim();
+        const amount = parseFloat(document.getElementById('amount').value);
+        const dateInput = document.getElementById('date').value;
+        const category = document.getElementById('category').value;
+        const type = document.getElementById('type').value;
+        const paymentMethod = document.getElementById('paymentMethod').value;
+        
+        // Validar campos obrigatórios
+        if (!description || !amount || !category || !type || !paymentMethod) {
+            alert('Por favor, preencha todos os campos obrigatórios.');
+            return;
+        }
+
+        // Validar valor
+        if (isNaN(amount) || amount <= 0) {
+            alert('Por favor, insira um valor válido.');
+            return;
+        }
+
+        // Validar data
+        const date = dateInput || new Date().toISOString().split('T')[0];
+        if (!date || date.includes('undefined') || date.includes('NaN')) {
+            alert('Data inválida. Usando data atual.');
+            date = new Date().toISOString().split('T')[0];
+        }
+
+        // Criar objeto de transação com ID único
+        const transaction = {
+            id: Date.now() + Math.random().toString(36).substr(2, 9),
+            description,
+            amount: Math.abs(amount),
+            category,
+            type,
+            date,
+            paymentMethod: paymentMethod.toLowerCase(),
+            frequency: document.getElementById('frequency').value || '',
+            endDate: document.getElementById('endDate').value || '',
+            timestamp: Date.now()
+        };
+
+        // Referência para o Firestore
+        const firestore = firebase.firestore();
+        const userRef = firestore.collection('users').doc(user.uid);
+        
+        // Adicionar transação usando set com merge
+        await userRef.set({
+            transactions: firebase.firestore.FieldValue.arrayUnion(transaction),
+            lastSync: Date.now()
+        }, { merge: true });
+
+        // Limpar o formulário
+        document.getElementById('transactionForm').reset();
+        
+        // Atualizar tabela
+        await updateTransactionsTable();
+        
+        alert('Transação adicionada com sucesso!');
+    } catch (error) {
+        console.error('Erro ao adicionar transação:', error);
+        alert('Erro ao adicionar transação. Por favor, verifique se você está conectado à internet e tente novamente.');
+    }
+}
+
+// Adicionando eventos de clique para os botões
+document.addEventListener('DOMContentLoaded', () => {
+    // Exportar PDF
+    const exportPDFBtn = document.getElementById('exportPDF');
+    if (exportPDFBtn) {
+        exportPDFBtn.addEventListener('click', exportToPDF);
+    }
+    
+    // Importar JSON
+    const importDataBtn = document.getElementById('importData');
+    const fileInput = document.getElementById('fileInput');
+    if (importDataBtn && fileInput) {
+        importDataBtn.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => importJSON(e));
+    }
+    
+    // Importar Comprovante
+    const importReceiptBtn = document.getElementById('importReceipt');
+    const receiptInput = document.getElementById('receiptInput');
+    if (importReceiptBtn && receiptInput) {
+        importReceiptBtn.addEventListener('click', () => receiptInput.click());
+        receiptInput.addEventListener('change', (e) => importReceipt(e));
+    }
+});
+
+
+
 // Função para atualizar a tabela de transações
 async function updateTransactionsTable() {
     try {
+        // Limpar a tabela existente
         const tableBody = document.getElementById('transactionsBody');
         if (tableBody) {
             tableBody.innerHTML = '';
         }
 
+        // Referência para o Firestore
         const user = firebase.auth().currentUser;
         if (!user) {
             console.error('Usuário não está logado');
@@ -385,6 +587,7 @@ async function updateTransactionsTable() {
         const firestore = firebase.firestore();
         const userRef = firestore.collection('users').doc(user.uid);
         
+        // Obter transações do Firebase
         const userDoc = await userRef.get();
         let transactions = [];
         if (userDoc.exists) {
@@ -393,15 +596,17 @@ async function updateTransactionsTable() {
         }
         console.log('Atualizando tabela com', transactions.length, 'transações do Firebase');
 
+        // Ordenar transações por data (mais recentes primeiro)
         const sortedTransactions = transactions.sort((a, b) => b.timestamp - a.timestamp);
 
+        // Adicionar cada transação à tabela
         sortedTransactions.forEach(transaction => {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${formatDate(transaction.date)}</td>
                 <td>${transaction.description}</td>
                 <td style="text-align: right; padding-right: 10px;">${formatCurrency(transaction.amount)}</td>
-                <td><i class="fas fa-${getCategoryIcon(transaction.category)}" style="color: ${categoryColors[transaction.category]}" title="${transaction.category}"></i></td>
+                <td>${getCategoryIcon(transaction.category)}</td>
                 <td>${transaction.type}</td>
                 <td>${transaction.paymentMethod}</td>
                 <td>
@@ -411,6 +616,7 @@ async function updateTransactionsTable() {
             tableBody.appendChild(row);
         });
 
+        // Atualizar os totais
         await updateTotals();
 
         console.log('Tabela atualizada com sucesso');
@@ -421,7 +627,7 @@ async function updateTransactionsTable() {
 }
 
 // Função para deletar transação
-async function deleteTransaction(id) {
+async function deleteTransaction(transactionId) {
     if (!confirm('Tem certeza que deseja deletar esta transação?')) {
         return;
     }
@@ -437,6 +643,7 @@ async function deleteTransaction(id) {
         const firestore = firebase.firestore();
         const userRef = firestore.collection('users').doc(user.uid);
         
+        // Obter transações existentes
         const userDoc = await userRef.get();
         let currentTransactions = [];
         if (userDoc.exists) {
@@ -444,13 +651,16 @@ async function deleteTransaction(id) {
             currentTransactions = data.transactions || [];
         }
 
-        const updatedTransactions = currentTransactions.filter(tx => tx.id !== id);
+        // Remover a transação
+        const updatedTransactions = currentTransactions.filter(tx => tx.id !== transactionId);
 
+        // Atualizar o documento
         await userRef.set({
             transactions: updatedTransactions,
             lastSync: Date.now()
         }, { merge: true });
 
+        // Atualizar tabela
         await updateTransactionsTable();
         
         alert('Transação deletada com sucesso!');
@@ -460,154 +670,328 @@ async function deleteTransaction(id) {
     }
 }
 
-// Função para atualizar os totais
-async function updateTotals() {
+// Função para configurar o gráfico
+async function configureChart() {
     try {
-        const user = firebase.auth().currentUser;
-        if (!user) {
-            console.error('Usuário não está logado');
-            return;
-        }
-
-        const firestore = firebase.firestore();
-        const userRef = firestore.collection('users').doc(user.uid);
+        const transactions = await db.transactions.toArray();
+        const categories = {};
         
-        const userDoc = await userRef.get();
-        let transactions = [];
-        if (userDoc.exists) {
-            const data = userDoc.data();
-            transactions = data.transactions || [];
-        }
-
-        const totalReceitas = transactions
-            .filter(t => t.type === 'receita')
-            .reduce((sum, t) => sum + t.amount, 0);
-
-        const totalDespesas = transactions
-            .filter(t => t.type === 'despesa')
-            .reduce((sum, t) => sum + t.amount, 0);
-
-        const saldo = totalReceitas - totalDespesas;
-
-        document.getElementById('totalReceitas').textContent = formatCurrency(totalReceitas);
-        document.getElementById('totalDespesas').textContent = formatCurrency(totalDespesas);
-        document.getElementById('saldo').textContent = formatCurrency(saldo);
-
-        await updateChart();
-    } catch (error) {
-        console.error('Erro ao atualizar totais:', error);
-    }
-}
-
-// Função para atualizar o gráfico
-async function updateChart() {
-    try {
-        const user = firebase.auth().currentUser;
-        if (!user) {
-            console.error('Usuário não está logado');
-            return;
-        }
-
-        const firestore = firebase.firestore();
-        const userRef = firestore.collection('users').doc(user.uid);
-        
-        const userDoc = await userRef.get();
-        let transactions = [];
-        if (userDoc.exists) {
-            const data = userDoc.data();
-            transactions = data.transactions || [];
-        }
-
-        const despesas = transactions
-            .filter(t => t.type === 'despesa')
-            .map(t => ({
-                category: t.category,
-                amount: t.amount
-            }));
-
-        const grouped = despesas.reduce((acc, t) => {
-            if (!acc[t.category]) {
-                acc[t.category] = 0;
+        transactions.forEach(transaction => {
+            if (transaction.type === 'despesa') {
+                const category = transaction.category || 'outros';
+                categories[category] = (categories[category] || 0) + transaction.amount;
             }
-            acc[t.category] += t.amount;
-            return acc;
-        }, {});
+        });
 
-        const labels = Object.keys(grouped);
-        const data = Object.values(grouped);
-        const colors = labels.map(label => categoryColors[label] || '#95A5A6');
+        const ctx = document.getElementById('expensesChart').getContext('2d');
+        
+        if (window.myChart) {
+            window.myChart.destroy();
+        }
 
-        const config = {
-            type: 'doughnut',
+        window.myChart = new Chart(ctx, {
+            type: 'pie',
             data: {
-                labels: labels,
+                labels: Object.keys(categories),
                 datasets: [{
-                    data: data,
-                    backgroundColor: colors,
-                    borderWidth: 1
+                    data: Object.values(categories),
+                    backgroundColor: [
+                        '#10b981',
+                        '#ef4444',
+                        '#f59e0b',
+                        '#7c3aed',
+                        '#2dd4bf',
+                        '#f472b6',
+                        '#3b82f6',
+                        '#16a34a',
+                        '#db2777',
+                        '#1e40af',
+                        '#8b5cf6'
+                    ]
                 }]
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false,
                 plugins: {
                     legend: {
                         position: 'bottom',
                         labels: {
-                            color: '#333',
-                            font: {
-                                size: 12
-                            }
+                            color: 'white'
                         }
                     },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                const label = context.label || '';
-                                const value = formatCurrency(context.raw);
-                                return `${label}: ${value}`;
-                            }
-                        }
+                    title: {
+                        display: true,
+                        text: 'Distribuição de Gastos por Categoria',
+                        color: 'white'
                     }
                 }
             }
-        };
-
-        const chartCanvas = document.getElementById('transactionsChart').getContext('2d');
-        if (window.chart) {
-            window.chart.destroy();
-        }
-        window.chart = new Chart(chartCanvas, config);
+        });
     } catch (error) {
-        console.error('Erro ao atualizar gráfico:', error);
+        console.error('Erro ao configurar gráfico:', error);
     }
 }
 
-// Adicionar evento de submit quando o conteúdo principal for mostrado
-document.addEventListener('DOMContentLoaded', () => {
-    const mainContent = document.getElementById('mainContent');
-    const form = document.getElementById('transactionForm');
+// Função para atualizar os totais
+async function updateTotals() {
+    console.log('Atualizando totais...');
     
-    if (mainContent && form) {
+    try {
+        if (!db) {
+            console.log('Inicializando banco de dados...');
+            await initializeDatabase();
+        }
+
+        const transactions = await db.transactions.toArray();
+        console.log('Transações para cálculo de totais:', transactions);
+
+        let totalReceitas = 0;
+        let totalDespesas = 0;
+        let totalCartao = 0;
+        const categoryTotals = {};
+
+        transactions.forEach(transaction => {
+            if (transaction.type === 'receita') {
+                totalReceitas += transaction.amount;
+            } else {
+                totalDespesas += transaction.amount;
+                // Verificar se é cartão de crédito
+                if (transaction.paymentMethod?.toLowerCase() === 'cartao_credito' || transaction.paymentMethod?.toLowerCase() === 'cartão') {
+                    totalCartao += transaction.amount;
+                }
+
+                // Soma por categoria
+                if (categoryTotals[transaction.category]) {
+                    categoryTotals[transaction.category] += transaction.amount;
+                } else {
+                    categoryTotals[transaction.category] = transaction.amount;
+                }
+            }
+        });
+
+        const saldo = totalReceitas - totalDespesas;
+        console.log('Totais calculados:', {
+            receitas: formatCurrency(totalReceitas),
+            despesas: formatCurrency(totalDespesas),
+            cartao: formatCurrency(totalCartao),
+            saldo: formatCurrency(saldo)
+        });
+
+        const totalReceitasElement = document.getElementById('totalReceitas');
+        const totalDespesasElement = document.getElementById('totalDespesas');
+        const totalCartaoElement = document.getElementById('totalCartao');
+        const saldoTotalElement = document.getElementById('saldoTotal');
+
+        if (totalReceitasElement) {
+            totalReceitasElement.textContent = formatCurrency(totalReceitas);
+        } else {
+            console.error('Elemento totalReceitas não encontrado');
+        }
+
+        if (totalDespesasElement) {
+            totalDespesasElement.textContent = formatCurrency(totalDespesas);
+        } else {
+            console.error('Elemento totalDespesas não encontrado');
+        }
+
+        if (totalCartaoElement) {
+            totalCartaoElement.textContent = formatCurrency(totalCartao);
+        } else {
+            console.error('Elemento totalCartao não encontrado');
+        }
+
+        if (saldoTotalElement) {
+            saldoTotalElement.textContent = formatCurrency(saldo);
+        } else {
+            console.error('Elemento saldoTotal não encontrado');
+        }
+
+        // Atualizar gráfico
+        updateChart(categoryTotals);
+    } catch (error) {
+        console.error('Erro ao atualizar totais:', error);
+        alert('Erro ao atualizar totais. Por favor, tente novamente.');
+    }
+}
+
+// Função para atualizar o gráfico
+function updateChart(categoryTotals) {
+    const chartCanvas = document.getElementById('chartCanvas');
+    if (!chartCanvas) return;
+
+    // Limpar gráfico existente
+    if (window.chart) {
+        window.chart.destroy();
+    }
+
+    // Preparar dados para o gráfico
+    const labels = Object.keys(categoryTotals);
+    const data = Object.values(categoryTotals);
+    const backgroundColors = labels.map(category => categoryColors[category] || categoryColors['outros']);
+
+    // Configuração do gráfico
+    const config = {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: backgroundColors,
+                hoverOffset: 4,
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        color: 'white',
+                        font: {
+                            size: 14
+                        }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => {
+                            const label = context.label || '';
+                            const value = formatCurrency(context.parsed);
+                            return `${label}: ${value}`;
+                        }
+                    },
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleColor: 'white',
+                    bodyColor: 'white',
+                    borderColor: 'white',
+                    borderWidth: 1
+                }
+            },
+            animation: {
+                duration: 1000,
+                easing: 'easeInOutQuart'
+            }
+        }
+    };
+
+    // Criar novo gráfico
+    window.chart = new Chart(chartCanvas, config);
+}
+
+// Função para carregar transações do Firebase
+async function loadTransactionsFromFirebase() {
+    try {
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            console.error('Usuário não está logado');
+            return;
+        }
+
+        // Referência para o Firestore
+        const firestore = firebase.firestore();
+        const userRef = firestore.collection('users').doc(user.uid);
+        
+        // Obter documento do usuário
+        const userDoc = await userRef.get();
+        
+        if (userDoc.exists) {
+            const data = userDoc.data();
+            if (data.transactions && Array.isArray(data.transactions)) {
+                // Adicionar novas transações ao banco local
+                const localTransactions = await db.transactions.toArray();
+                
+                // Filtrar transações novas (que não existem localmente) usando ID
+                const newTransactions = data.transactions.filter(firebaseTx => {
+                    return !localTransactions.some(localTx => 
+                        localTx.id === firebaseTx.id
+                    );
+                });
+
+                console.log('Transações novas do Firebase:', newTransactions);
+                
+                // Adicionar apenas as novas transações
+                if (newTransactions.length > 0) {
+                    await db.transactions.bulkAdd(newTransactions);
+                    console.log('Novas transações adicionadas:', newTransactions.length);
+                }
+                
+                // Atualizar tabela
+                await updateTransactionsTable();
+            }
+        }
+    } catch (error) {
+        console.error('Erro ao carregar transações do Firebase:', error);
+        alert('Erro ao carregar transações do Firebase. Por favor, tente novamente.');
+    }
+}
+
+// Adicionando eventos quando a página carregar
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        // Inicializar banco de dados e Firebase
+        await initializeDatabase();
+        
+        // Carregar transações do Firebase e sincronizar
+        await loadTransactionsFromFirebase();
+        
+        // Configurar listener para atualizações em tempo real
         const user = firebase.auth().currentUser;
         if (user) {
-            form.addEventListener('submit', async (e) => {
-                if (window.isSubmitting) return;
-                
-                e.preventDefault();
-                window.isSubmitting = true;
-                try {
-                    await window.addTransaction(e);
-                    window.isSubmitting = false;
-                } catch (error) {
-                    console.error('Erro ao processar transação:', error);
-                    alert('Erro ao processar transação. Por favor, tente novamente.');
-                    window.isSubmitting = false;
+            const firestore = firebase.firestore();
+            const userRef = firestore.collection('users').doc(user.uid);
+            
+            // Adicionar listener para atualizações em tempo real
+            userRef.onSnapshot(async (doc) => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    if (data.transactions && Array.isArray(data.transactions)) {
+                        // Adicionar novas transações ao banco local
+                        const localTransactions = await db.transactions.toArray();
+                        
+                        // Filtrar transações novas (que não existem localmente)
+                        const newTransactions = data.transactions.filter(firebaseTx => {
+                            return !localTransactions.some(localTx => 
+                                localTx.description === firebaseTx.description &&
+                                localTx.amount === firebaseTx.amount &&
+                                localTx.date === firebaseTx.date
+                            );
+                        });
+
+                        console.log('Transações novas do Firebase:', newTransactions);
+                        
+                        // Adicionar apenas as novas transações
+                        if (newTransactions.length > 0) {
+                            await db.transactions.bulkAdd(newTransactions);
+                            console.log('Novas transações adicionadas:', newTransactions.length);
+                        }
+                        
+                        // Atualizar tabela
+                        await updateTransactionsTable();
+                        
+                        // Atualizar totais
+                        await updateTotals();
+                    }
                 }
             });
-        } else {
-            alert('Por favor, faça login primeiro.');
-            window.location.href = '/login.html';
         }
+        
+        // Atualizar a tabela inicialmente
+        updateTransactionsTable();
+        
+        // Configurar filtro de categoria
+        const categoryFilter = document.getElementById('categoryFilter');
+        if (categoryFilter) {
+            categoryFilter.addEventListener('change', updateTransactionsTable);
+        }
+        
+        // Configurar filtro de mês
+        const monthFilter = document.getElementById('monthFilter');
+        if (monthFilter) {
+            monthFilter.addEventListener('change', updateTransactionsTable);
+        }
+    } catch (error) {
+        console.error('Erro ao inicializar:', error);
     }
 });

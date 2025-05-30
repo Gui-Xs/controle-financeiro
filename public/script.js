@@ -754,6 +754,49 @@ async function loadTransactionsFromFirebase() {
     }
 }
 
+// Função para deletar transação
+async function deleteTransaction(id) {
+    if (!confirm('Tem certeza que deseja deletar esta transação?')) {
+        return;
+    }
+
+    try {
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            console.error('Usuário não está logado');
+            alert('Por favor, faça login primeiro.');
+            return;
+        }
+
+        const firestore = firebase.firestore();
+        const userRef = firestore.collection('users').doc(user.uid);
+        
+        // Obter transações existentes
+        const userDoc = await userRef.get();
+        let currentTransactions = [];
+        if (userDoc.exists) {
+            const data = userDoc.data();
+            currentTransactions = data.transactions || [];
+        }
+
+        // Remover a transação
+        const updatedTransactions = currentTransactions.filter(tx => tx.id !== id);
+
+        // Atualizar o documento
+        await userRef.set({
+            transactions: updatedTransactions,
+            lastSync: Date.now()
+        }, { merge: true });
+
+        // Atualizar tabela
+        await updateTransactionsTable();
+        
+        alert('Transação deletada com sucesso!');
+    } catch (error) {
+        console.error('Erro ao deletar transação:', error);
+        alert('Erro ao deletar transação. Por favor, tente novamente.');
+    }
+}
 
 
 
