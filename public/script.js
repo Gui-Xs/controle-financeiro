@@ -10,7 +10,6 @@ const firebaseConfig = {
 
 // Inicializar Firebase
 firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
 
 // Funções auxiliares
 function formatCurrency(value) {
