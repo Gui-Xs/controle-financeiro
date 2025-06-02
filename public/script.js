@@ -240,6 +240,39 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addTransaction = addTransaction;
 });
 
+// Função para exportar dados como JSON
+async function exportJSON() {
+    try {
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            alert('Por favor, faça login para exportar dados.');
+            return;
+        }
+
+        const transactions = await loadTransactionsFromFirebase();
+        if (!transactions || transactions.length === 0) {
+            alert('Não há transações para exportar.');
+            return;
+        }
+
+        const jsonString = JSON.stringify(transactions, null, 2);
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'transacoes.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        alert('Dados exportados para transacoes.json com sucesso!');
+
+    } catch (error) {
+        console.error('Erro ao exportar JSON:', error);
+        alert('Erro ao exportar dados em JSON. Verifique o console para mais detalhes.');
+    }
+}
+
 // Função para exportar PDF
 async function exportToPDF() {
     try {
@@ -857,6 +890,33 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
                 if (monthFilterInit) {
                     monthFilterInit.addEventListener('change', updateTransactionsTable);
+                }
+
+                // Setup Import/Export Event Listeners
+                const exportDataBtn = document.getElementById('exportData');
+                const exportPdfBtn = document.getElementById('exportPDF');
+                const importDataBtn = document.getElementById('importData');
+                const importReceiptBtn = document.getElementById('importReceipt');
+                const fileInputEl = document.getElementById('fileInput');
+                const receiptInputEl = document.getElementById('receiptInput');
+
+                if (exportDataBtn) {
+                    exportDataBtn.addEventListener('click', exportJSON);
+                }
+                if (exportPdfBtn) {
+                    exportPdfBtn.addEventListener('click', exportToPDF);
+                }
+                if (importDataBtn && fileInputEl) {
+                    importDataBtn.addEventListener('click', () => fileInputEl.click());
+                }
+                if (fileInputEl) {
+                    fileInputEl.addEventListener('change', importJSON);
+                }
+                if (importReceiptBtn && receiptInputEl) {
+                    importReceiptBtn.addEventListener('click', () => receiptInputEl.click());
+                }
+                if (receiptInputEl) {
+                    receiptInputEl.addEventListener('change', importReceipt);
                 }
 
                 // Configurar filtro de categoria
