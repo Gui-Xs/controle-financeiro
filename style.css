@@ -229,7 +229,8 @@ body {
     font-size: 0.9rem;
 }
 
-.transaction-details .amount {
+.transaction-details .amount,
+.transaction-details .attachment {
     font-weight: 500;
 }
 

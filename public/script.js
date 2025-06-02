@@ -123,7 +123,8 @@ async function addTransaction(e) {
         const isRecurring = document.getElementById('isRecurring').checked;
         const dueDateValue = document.getElementById('dueDate').value;
         const isBill = document.getElementById('isBill').checked;
-        
+        const attachmentFile = document.getElementById('transactionAttachment').files[0];
+
         // Validar campos obrigatórios
         if (!description || !amount || !category || !type || !paymentMethod) {
             alert('Por favor, preencha todos os campos obrigatórios.');
@@ -158,7 +159,8 @@ async function addTransaction(e) {
             endDate: document.getElementById('endDate').value || '',
             timestamp: Date.now(),
             dueDate: dueDateValue || null, // Salva como null se não preenchido
-            isBill: isBill
+            isBill: isBill,
+            attachmentUrl: null // Inicializa como null
         };
 
         console.log('Transação a ser adicionada:', transaction);
@@ -180,6 +182,21 @@ async function addTransaction(e) {
             return;
         }
 
+        // Fazer upload do anexo, se houver
+        if (attachmentFile) {
+            const sanitizedFileName = attachmentFile.name.replace(/[^a-zA-Z0-9._-]/g, '_'); // Sanitiza nome do arquivo
+            const attachmentRef = firebase.storage().ref(`attachments/${user.uid}/${Date.now()}_${sanitizedFileName}`);
+            try {
+                const uploadTaskSnapshot = await attachmentRef.put(attachmentFile);
+                transaction.attachmentUrl = await uploadTaskSnapshot.ref.getDownloadURL();
+                console.log('Arquivo anexado com sucesso:', transaction.attachmentUrl);
+            } catch (uploadError) {
+                console.error('Erro ao fazer upload do anexo:', uploadError);
+                alert('Erro ao fazer upload do anexo. A transação será salva sem ele.');
+                // Não impede o salvamento da transação, mas o attachmentUrl permanecerá null
+            }
+        }
+
         // Adicionar transação usando set com merge
         await userRef.set({
             transactions: firebase.firestore.FieldValue.arrayUnion(transaction),
@@ -192,6 +209,7 @@ async function addTransaction(e) {
         document.getElementById('transactionForm').reset();
         document.getElementById('dueDate').value = ''; // Limpa o campo de data de vencimento
         document.getElementById('isBill').checked = false; // Desmarca o checkbox de conta a pagar
+        document.getElementById('transactionAttachment').value = null; // Limpa o campo de anexo
         
         // Atualizar tabela
         await updateTransactionsTable();
@@ -559,6 +577,7 @@ async function updateTransactionsTable() {
                         <span class="date">Data</span>
                         <span class="payment-method">Forma de Pagamento</span>
                         <span class="amount">Valor</span>
+                        <span class="attachment">Anexo</span>
                     </div>
                 `;
                 transactionsList.appendChild(header);
@@ -578,6 +597,9 @@ async function updateTransactionsTable() {
                         <span class="date">${formatDate(transaction.date)}</span>
                         <span class="payment-method">${transaction.paymentMethod}</span>
                         <span class="amount ${transaction.type === 'receita' ? 'positive' : 'negative'}">${formatCurrency(transaction.amount)}</span>
+                        <span class="attachment">
+                            ${transaction.attachmentUrl ? `<a href="${transaction.attachmentUrl}" target="_blank" title="Ver anexo"><i class="fas fa-paperclip"></i></a>` : '-'}
+                        </span>
                     `;
 
                     const deleteBtn = document.createElement('button');
