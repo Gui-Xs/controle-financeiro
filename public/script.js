@@ -681,7 +681,7 @@ async function updateTotals() {
         const user = firebase.auth().currentUser;
         if (!user) {
             console.error('Usuário não está logado');
-            return;
+            return { receitas: 0, despesas: 0, saldo: 0 };
         }
 
         // Referência para o Firestore
@@ -729,12 +729,15 @@ async function updateTotals() {
             } else {
                 console.error('Elementos para totais não encontrados');
             }
+            return { receitas, despesas, saldo };
         } else {
             console.error('Documento do usuário não encontrado');
+            return { receitas: 0, despesas: 0, saldo: 0 };
         }
     } catch (error) {
         console.error('Erro ao atualizar totais:', error);
         alert('Erro ao atualizar totais. Por favor, tente novamente.');
+        return { receitas: 0, despesas: 0, saldo: 0 };
     }
 }
 
