@@ -120,6 +120,9 @@ async function addTransaction(e) {
         const category = document.getElementById('category').value;
         const type = document.getElementById('type').value;
         const paymentMethod = document.getElementById('paymentMethod').value;
+        const isRecurring = document.getElementById('isRecurring').checked;
+        const dueDateValue = document.getElementById('dueDate').value;
+        const isBill = document.getElementById('isBill').checked;
         
         // Validar campos obrigatórios
         if (!description || !amount || !category || !type || !paymentMethod) {
@@ -153,7 +156,9 @@ async function addTransaction(e) {
             paymentMethod: paymentMethod.toLowerCase(),
             frequency: document.getElementById('frequency').value || '',
             endDate: document.getElementById('endDate').value || '',
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            dueDate: dueDateValue || null, // Salva como null se não preenchido
+            isBill: isBill
         };
 
         console.log('Transação a ser adicionada:', transaction);
@@ -185,6 +190,8 @@ async function addTransaction(e) {
 
         // Limpar o formulário
         document.getElementById('transactionForm').reset();
+        document.getElementById('dueDate').value = ''; // Limpa o campo de data de vencimento
+        document.getElementById('isBill').checked = false; // Desmarca o checkbox de conta a pagar
         
         // Atualizar tabela
         await updateTransactionsTable();
@@ -823,7 +830,68 @@ async function updateChart() {
     }
 }
 
+// Função para solicitar permissão de notificação
+async function requestNotificationPermission() {
+    if (!('Notification' in window)) {
+        console.log('Este navegador não suporta notificações desktop.');
+        return false;
+    }
+    if (Notification.permission === 'granted') {
+        console.log('Permissão para notificações já concedida.');
+        return true;
+    }
+    if (Notification.permission !== 'denied') {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+            console.log('Permissão para notificações concedida.');
+            new Notification('Ótimo!', { body: 'Você receberá notificações sobre suas contas agora!' });
+            return true;
+        }
+    }
+    console.log('Permissão para notificações não concedida.');
+    return false;
+}
+
 // Função para carregar transações do Firebase
+async function checkUpcomingBills(transactions) {
+    if (Notification.permission !== 'granted') {
+        console.log('Permissão para notificações não concedida, não é possível checar contas a vencer.');
+        return;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Normaliza para o início do dia
+    const sevenDaysFromNow = new Date(today);
+    sevenDaysFromNow.setDate(today.getDate() + 7);
+
+    console.log('Checando contas a vencer...');
+    transactions.forEach(transaction => {
+        if (transaction.isBill && transaction.dueDate) {
+            const dueDate = new Date(transaction.dueDate + 'T00:00:00'); // Adiciona T00:00:00 para evitar problemas de fuso horário na conversão
+            
+            if (dueDate >= today && dueDate <= sevenDaysFromNow) {
+                const timeDiff = dueDate.getTime() - today.getTime();
+                const daysRemaining = Math.ceil(timeDiff / (1000 * 3600 * 24));
+
+                let message = `Lembrete: A conta '${transaction.description}' (${formatCurrency(transaction.amount)}) `;
+                if (daysRemaining === 0) {
+                    message += 'vence hoje!';
+                } else if (daysRemaining === 1) {
+                    message += 'vence amanhã!';
+                } else {
+                    message += `vence em ${daysRemaining} dias.`;
+                }
+
+                new Notification('Conta Próxima do Vencimento!', {
+                    body: message,
+                    icon: './public/icons/icon-192x192.png' // Opcional: adicione um ícone
+                });
+                console.log(`Notificação para: ${transaction.description}, vence em ${daysRemaining} dias.`);
+            }
+        }
+    });
+}
+
 async function loadTransactionsFromFirebase() {
     try {
         // Verificar se o usuário está logado
@@ -883,6 +951,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 await updateTotals();
                 // Atualizar gráfico
                 await updateChart();
+
+                // Solicitar permissão de notificação e checar contas a vencer
+                await requestNotificationPermission();
+                if (transactions && transactions.length > 0) {
+                    checkUpcomingBills(transactions);
+                }
 
                 // Configurar eventos de filtro
                 const categoryFilterInit = document.getElementById('categoryFilter');
