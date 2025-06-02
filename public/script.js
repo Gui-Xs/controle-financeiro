@@ -748,6 +748,114 @@ async function updateTotals() {
     }
 }
 
+// Função para atualizar o gráfico de evolução mensal
+async function updateMonthlyEvolutionChart() {
+    try {
+        const user = firebase.auth().currentUser;
+        if (!user) return;
+
+        const firestore = firebase.firestore();
+        const userRef = firestore.collection('users').doc(user.uid);
+        const doc = await userRef.get();
+
+        if (doc.exists) {
+            const transactions = doc.data().transactions || [];
+            
+            // Processar transações para agrupar por mês/ano
+            const monthlyData = transactions.reduce((acc, transaction) => {
+                const date = new Date(transaction.date + 'T00:00:00'); // Assegura a data correta
+                const yearMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`; // Formato YYYY-MM
+
+                if (!acc[yearMonth]) {
+                    acc[yearMonth] = { receitas: 0, despesas: 0 };
+                }
+
+                if (transaction.type === 'receita') {
+                    acc[yearMonth].receitas += transaction.amount;
+                } else if (transaction.type === 'despesa') {
+                    acc[yearMonth].despesas += transaction.amount;
+                }
+                return acc;
+            }, {});
+
+            const sortedMonths = Object.keys(monthlyData).sort();
+
+            const labels = sortedMonths.map(month => {
+                const [year, mon] = month.split('-');
+                // Formatar para "Mês Abreviado/Ano"
+                const d = new Date(parseInt(year), parseInt(mon) - 1);
+                return `${d.toLocaleString('pt-BR', { month: 'short' })}/${year}`;
+            });
+            const receitaData = sortedMonths.map(month => monthlyData[month].receitas);
+            const despesaData = sortedMonths.map(month => monthlyData[month].despesas);
+
+            const canvas = document.getElementById('chartCanvas');
+            if (!canvas) {
+                console.error('Canvas do gráfico não encontrado');
+                return;
+            }
+            const ctx = canvas.getContext('2d');
+
+            if (window.activeChart) { // Use unified activeChart
+                window.activeChart.destroy();
+            }
+
+            window.activeChart = new Chart(ctx, { // Assign to unified activeChart
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Receitas',
+                            data: receitaData,
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                            fill: true,
+                            tension: 0.1
+                        },
+                        {
+                            label: 'Despesas',
+                            data: despesaData,
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                            fill: true,
+                            tension: 0.1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { color: '#ffffff' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        },
+                        x: {
+                            ticks: { color: '#ffffff' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: '#ffffff'
+                            }
+                        }
+                    }
+                }
+            });
+            console.log('Gráfico de evolução mensal atualizado.');
+        } else {
+            console.error('Documento do usuário não encontrado para gráfico de evolução.');
+        }
+    } catch (error) {
+        console.error('Erro ao atualizar gráfico de evolução mensal:', error);
+    }
+}
+
 // Função para atualizar o gráfico
 async function updateChart() {
     try {
@@ -794,10 +902,10 @@ async function updateChart() {
 
             // Atualizar gráfico
             const ctx = canvas.getContext('2d');
-            if (window.myChart) {
-                window.myChart.destroy();
+            if (window.activeChart) { // Use unified activeChart
+                window.activeChart.destroy();
             }
-            window.myChart = new Chart(ctx, {
+            window.activeChart = new Chart(ctx, { // Assign to unified activeChart
                 type: 'pie',
                 data: {
                     labels: labels,
@@ -928,6 +1036,7 @@ async function loadTransactionsFromFirebase() {
 
 // Inicialização do aplicativo
 document.addEventListener('DOMContentLoaded', async () => {
+    window.activeChart = null; // Initialize active chart instance
     try {
         // Adicionar listener para mudanças de autenticação
         firebase.auth().onAuthStateChanged(async (user) => {
@@ -949,13 +1058,33 @@ document.addEventListener('DOMContentLoaded', async () => {
                 await updateTransactionsTable();
                 // Atualizar totais
                 await updateTotals();
-                // Atualizar gráfico
-                await updateChart();
+                // Atualizar gráfico (gráfico de categorias como padrão)
+                await updateChart(); 
 
                 // Solicitar permissão de notificação e checar contas a vencer
                 await requestNotificationPermission();
                 if (transactions && transactions.length > 0) {
                     checkUpcomingBills(transactions);
+                }
+
+                // Configurar botões de alternância de gráfico
+                const categoryBtn = document.getElementById('showCategoryChartBtn');
+                const evolutionBtn = document.getElementById('showEvolutionChartBtn');
+
+                if (categoryBtn && evolutionBtn) {
+                    categoryBtn.addEventListener('click', async () => {
+                        await updateChart();
+                        categoryBtn.classList.add('active-chart-btn');
+                        evolutionBtn.classList.remove('active-chart-btn');
+                    });
+
+                    evolutionBtn.addEventListener('click', async () => {
+                        await updateMonthlyEvolutionChart();
+                        evolutionBtn.classList.add('active-chart-btn');
+                        categoryBtn.classList.remove('active-chart-btn');
+                    });
+                } else {
+                    console.error('Botões de alternância de gráfico não encontrados.');
                 }
 
                 // Configurar eventos de filtro
