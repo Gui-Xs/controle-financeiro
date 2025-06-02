@@ -284,7 +284,7 @@ async function exportToPDF() {
         }
 
         // Criar PDF
-        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pdf = new window.jspdf.jsPDF('p', 'mm', 'a4');
         const title = 'Relatório de Transações';
         const date = new Date().toLocaleDateString('pt-BR', {
             day: '2-digit',
