@@ -11,7 +11,7 @@ function formatCurrency(value) {
     return value < 0 ? `-${formatted}` : formatted;
 }
 
-// Mapeamento de categorias para ícones e cores
+// Mapeamento de categorias para cores
 const categoryColors = {
     'alimentacao': '#FF6B6B',  // Vermelho
     'transporte': '#4ECDC4',   // Verde água
@@ -28,26 +28,26 @@ const categoryColors = {
     'outros': '#95A5A6'        // Cinza
 };
 
+// Mapeamento de categorias para ícones Font Awesome
 const categoryIcons = {
-    'alimentacao': 'utensils',
-    'transporte': 'car',
-    'moradia': 'home',
-    'saude': 'heart',
-    'educacao': 'graduation-cap',
-    'lazer': 'gamepad',
-    'vestuario': 'tshirt',
-    'tecnologia': 'laptop',
-    'servicos': 'tools',
-    'investimentos': 'chart-line',
-    'viagem': 'plane',
-    'presente': 'gift',
-    'outros': 'question-circle'
+    'alimentacao': 'fas fa-utensils',
+    'transporte': 'fas fa-car',
+    'moradia': 'fas fa-home',
+    'saude': 'fas fa-heartbeat',
+    'educacao': 'fas fa-graduation-cap',
+    'lazer': 'fas fa-film',
+    'compras': 'fas fa-shopping-bag',
+    'servicos': 'fas fa-concierge-bell',
+    'salario': 'fas fa-wallet', 
+    'investimentos': 'fas fa-chart-line',
+    'presentes': 'fas fa-gift',
+    'contas': 'fas fa-file-invoice-dollar',
+    'outros': 'fas fa-ellipsis-h', 
+    // Adicione mais categorias e ícones conforme necessário
 };
 
-// Função para obter o ícone da categoria
-function getCategoryIcon(category) {
-    return categoryIcons[category] || categoryIcons['outros'];
-}
+// Ícone padrão caso a categoria não seja encontrada
+const defaultIcon = 'fas fa-question-circle';
 
 // Função para formatar data
 function formatDate(date) {
@@ -554,6 +554,7 @@ async function updateTransactionsTable() {
                 header.className = 'transaction-header';
                 header.innerHTML = `
                     <div class="transaction-details">
+                        <span class="transaction-icon"><i class="fas fa-tag"></i></span> <!-- Ícone genérico para cabeçalho -->
                         <span class="description">Descrição</span>
                         <span class="category">Categoria</span>
                         <span class="date">Data</span>
@@ -572,9 +573,15 @@ async function updateTransactionsTable() {
                     // Criar elementos separadamente para melhor manipulação
                     const detailsDiv = document.createElement('div');
                     detailsDiv.className = 'transaction-details';
+                    
+                    // Determinar o ícone da categoria
+                    const iconClass = categoryIcons[transaction.category] || defaultIcon;
+                    const iconHTML = `<i class="${iconClass}"></i>`;
+
                     detailsDiv.innerHTML = `
+                        <span class="transaction-icon">${iconHTML}</span>
                         <span class="description">${transaction.description}</span>
-                        <span class="category" style="color: ${categoryColors[transaction.category]}">${transaction.category}</span>
+                        <span class="category" style="color: ${categoryColors[transaction.category] || '#ffffff'}">${transaction.category}</span>
                         <span class="date">${formatDate(transaction.date)}</span>
                         <span class="payment-method">${transaction.paymentMethod}</span>
                         <span class="amount ${transaction.type === 'receita' ? 'positive' : 'negative'}">${formatCurrency(transaction.amount)}</span>
