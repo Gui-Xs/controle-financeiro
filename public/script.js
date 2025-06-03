@@ -12,6 +12,25 @@ function formatCurrency(value) {
 }
 
 // Mapeamento de categorias para ícones e cores
+const categoryIcons = {
+    'Alimentação': 'fas fa-utensils',
+    'Transporte': 'fas fa-car',
+    'Moradia': 'fas fa-home',
+    'Saúde': 'fas fa-heartbeat',
+    'Lazer': 'fas fa-film',
+    'Educação': 'fas fa-graduation-cap',
+    'Salário': 'fas fa-wallet',
+    'Contas': 'fas fa-file-invoice-dollar',
+    'Compras': 'fas fa-shopping-bag',
+    'Investimentos': 'fas fa-chart-line',
+    'Presentes': 'fas fa-gift',
+    'Cuidados Pessoais': 'fas fa-spa',
+    'Animais de Estimação': 'fas fa-paw',
+    'Impostos': 'fas fa-landmark',
+    'Viagem': 'fas fa-plane',
+    'Outros': 'fas fa-ellipsis-h'
+};
+
 const categoryColors = {
     'alimentacao': '#FF6B6B',  // Vermelho
     'transporte': '#4ECDC4',   // Verde água
@@ -26,22 +45,6 @@ const categoryColors = {
     'viagem': '#4ECDC4',       // Verde água
     'presente': '#FF6B6B',     // Vermelho
     'outros': '#95A5A6'        // Cinza
-};
-
-const categoryIcons = {
-    'alimentacao': 'utensils',
-    'transporte': 'car',
-    'moradia': 'home',
-    'saude': 'heart',
-    'educacao': 'graduation-cap',
-    'lazer': 'gamepad',
-    'vestuario': 'tshirt',
-    'tecnologia': 'laptop',
-    'servicos': 'tools',
-    'investimentos': 'chart-line',
-    'viagem': 'plane',
-    'presente': 'gift',
-    'outros': 'question-circle'
 };
 
 // Função para obter o ícone da categoria
@@ -554,11 +557,11 @@ async function updateTransactionsTable() {
                 header.className = 'transaction-header';
                 header.innerHTML = `
                     <div class="transaction-details">
-                        <span class="description">Descrição</span>
-                        <span class="category">Categoria</span>
-                        <span class="date">Data</span>
-                        <span class="payment-method">Forma de Pagamento</span>
-                        <span class="amount">Valor</span>
+                        <span class="description transaction-field">Descrição</span>
+                        <span class="category transaction-field">Categoria</span>
+                        <span class="date transaction-field">Data</span>
+                        <span class="payment-method transaction-field">Forma de Pagamento</span>
+                        <span class="amount transaction-field">Valor</span>
                     </div>
                 `;
                 transactionsList.appendChild(header);
@@ -573,24 +576,28 @@ async function updateTransactionsTable() {
                     const detailsDiv = document.createElement('div');
                     detailsDiv.className = 'transaction-details';
                     detailsDiv.innerHTML = `
-                        <span class="description">${transaction.description}</span>
-                        <span class="category" style="color: ${categoryColors[transaction.category]}">${transaction.category}</span>
-                        <span class="date">${formatDate(transaction.date)}</span>
-                        <span class="payment-method">${transaction.paymentMethod}</span>
-                        <span class="amount ${transaction.type === 'receita' ? 'positive' : 'negative'}">${formatCurrency(transaction.amount)}</span>
+                        <span class="description transaction-field">${transaction.description}</span>
+                        <span class="category transaction-field" style="color: ${categoryColors[transaction.category.toLowerCase()] || '#95A5A6'}">
+                            <i class="${categoryIcons[transaction.category] || categoryIcons['Outros']}" style="margin-right: 8px;"></i>
+                            ${transaction.category}
+                        </span>
+                        <span class="date transaction-field">${formatDate(transaction.date)}</span>
+                        <span class="payment-method transaction-field">${transaction.paymentMethod || 'N/A'}</span>
+                        <span class="amount transaction-field ${transaction.type === 'receita' ? 'positive' : 'negative'}">${formatCurrency(transaction.amount)}</span>
+                        <span class="type transaction-field">${transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1)}</span>
+                        <button class="delete-btn" data-id="${transaction.id}"><i class="fas fa-trash-alt"></i></button>
                     `;
-
-                    const deleteBtn = document.createElement('button');
-                    deleteBtn.className = 'delete-btn';
-                    deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
-                    
                     // Adicionar evento de clique usando addEventListener
-                    deleteBtn.addEventListener('click', async () => {
-                        await deleteTransaction(transaction.id);
-                    });
+                    transactionItem.appendChild(detailsDiv); // Adiciona detailsDiv ao item
 
-                    transactionItem.appendChild(detailsDiv);
-                    transactionItem.appendChild(deleteBtn);
+                    const deleteBtn = transactionItem.querySelector('.delete-btn'); // Busca o botão dentro do item atual
+                    if (deleteBtn) {
+                        deleteBtn.addEventListener('click', async () => {
+                            if (confirm('Tem certeza que deseja excluir esta transação?')) {
+                                await deleteTransaction(transaction.id);
+                            }
+                        });
+                    }
                     transactionsList.appendChild(transactionItem);
                 });
 

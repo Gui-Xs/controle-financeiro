@@ -1269,3 +1269,159 @@ button:hover {
 .transaction button i {
     font-size: 0.85rem;
 }
+
+/* === Estilos Adicionais para Lista de Transações, Ícones e Botões de Gráfico === */
+
+/* Lista de Transações e Itens */
+.transactions-list {
+    /* .transactions-list já existe, mas podemos adicionar/confirmar margem */
+    margin-top: 20px;
+}
+
+.transaction-header .transaction-details,
+.transaction-item .transaction-details {
+    display: flex;
+    justify-content: space-between; /* Distribui espaço entre os campos */
+    align-items: center;
+    width: calc(100% - 50px); /* Ajustar para o botão de deletar. Ex: 40px para o botão + 10px de margem */
+    gap: 8px; /* Espaçamento entre os campos */
+}
+
+.transaction-item {
+    display: flex; /* Para alinhar .transaction-details e o botão de deletar */
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 5px; /* Padding vertical e um pouco horizontal para o item inteiro */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--text-color);
+}
+
+.transaction-item:last-child {
+    border-bottom: none;
+}
+
+.transaction-details .transaction-field {
+    padding: 0 4px; /* Espaçamento interno para cada campo */
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Ajuste de flexibilidade e tamanho base para cada campo */
+.transaction-details .description {
+    flex: 3 1 180px; /* grow, shrink, basis */
+}
+
+.transaction-details .category {
+    flex: 2.5 1 160px; 
+    display: flex; /* Para alinhar ícone e texto dentro da categoria */
+    align-items: center;
+}
+
+.transaction-details .category i {
+    /* A cor é herdada do span da categoria (definida no JS) */
+    margin-right: 8px; /* Espaço entre ícone e texto */
+    font-size: 1em; 
+    opacity: 0.85;
+}
+
+.transaction-details .date {
+    flex: 1.5 1 90px;
+    text-align: center;
+}
+
+.transaction-details .payment-method {
+    flex: 2 1 110px;
+    text-align: center;
+}
+
+.transaction-details .amount {
+    flex: 1.5 1 100px;
+    text-align: right;
+    font-weight: 500;
+}
+
+.transaction-details .type { /* Se você estiver exibindo o tipo (Receita/Despesa) */
+    flex: 1 1 70px;
+    text-align: center;
+    font-size: 0.9em;
+    opacity: 0.8;
+}
+
+.transaction-item .delete-btn {
+    background: none;
+    border: none;
+    color: var(--danger-color);
+    cursor: pointer;
+    font-size: 1rem; /* Tamanho do ícone de lixeira */
+    padding: 8px; /* Área de clique maior */
+    margin-left: 10px; /* Espaço entre os detalhes e o botão */
+    flex-shrink: 0; /* Impede que o botão encolha */
+    line-height: 1; /* Para alinhar o ícone verticalmente */
+}
+
+.transaction-item .delete-btn:hover {
+    color: #c0392b; /* Tom mais escuro de vermelho */
+}
+
+/* Cores para valores positivos/negativos */
+.transaction-field.positive {
+    color: var(--success-color) !important;
+}
+
+.transaction-field.negative {
+    color: var(--danger-color) !important;
+}
+
+/* Cabeçalho da Lista de Transações */
+.transaction-header {
+    font-weight: 600;
+    padding: 12px 5px;
+    border-bottom: 1.5px solid rgba(255, 255, 255, 0.15);
+    margin-bottom: 8px;
+    color: #b0b0c0; /* Cor um pouco mais clara para o texto do cabeçalho */
+}
+
+/* Garante que os campos do cabeçalho também usem flex para alinhar com as colunas */
+.transaction-header .transaction-details .transaction-field {
+    text-align: center; /* Centraliza texto do cabeçalho por padrão */
+    white-space: normal; /* Permite quebra de linha se necessário */
+    overflow: visible;
+}
+/* Ajustes específicos de alinhamento para colunas do cabeçalho */
+.transaction-header .transaction-details .description { text-align: left; }
+.transaction-header .transaction-details .amount { text-align: right; }
+
+
+/* Botões de Alternância de Gráfico (Revisão e Confirmação) */
+.chart-toggle-buttons {
+    margin-bottom: 20px;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+.chart-toggle-buttons button {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: var(--text-color);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    font-weight: 500;
+}
+
+.chart-toggle-buttons button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: var(--accent-color);
+}
+
+.chart-toggle-buttons button.active-chart-btn {
+    background-color: var(--accent-color);
+    color: #ffffff; /* Garante contraste */
+    border-color: var(--accent-color);
+    font-weight: 600;
+}
